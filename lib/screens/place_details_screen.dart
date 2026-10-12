@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../localization/rihal_localized_text.dart';
+import '../rihal_style.dart';
 import 'explore_screen.dart';
 
 class PlaceDetailsScreen extends StatefulWidget {
@@ -10,10 +12,6 @@ class PlaceDetailsScreen extends StatefulWidget {
 }
 
 class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
-  static const Color green = Color(0xFF30452D);
-  static const Color brown = Color(0xFF7B5235);
-  static const Color beige = Color(0xFFF8F0E4);
-  static const Color ink = Color(0xFF332A24);
   int tab = 0;
 
   bool get isMuseum => widget.place.name == 'متحف دار المدينة';
@@ -101,37 +99,37 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                     : widget.place.imagePath;
     if (path == null) {
       return Container(
-        color: const Color(0xFFD7C7AD),
+        color: RihalStyle.cardBackgroundLight,
         alignment: Alignment.center,
-        child: Icon(widget.place.icon, size: 100, color: green),
+        child: Icon(widget.place.icon, size: 100, color: RihalStyle.darkGreen),
       );
     }
     return Image.asset(
       path,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => Container(
-        color: const Color(0xFFD7C7AD),
+        color: RihalStyle.cardBackgroundLight,
         alignment: Alignment.center,
-        child: Icon(widget.place.icon, size: 90, color: green),
+        child: Icon(widget.place.icon, size: 90, color: RihalStyle.darkGreen),
       ),
     );
   }
 
-  Widget _card({required Widget child, EdgeInsets padding = const EdgeInsets.all(16)}) {
+  Widget _card({
+    required Widget child,
+    EdgeInsets padding = const EdgeInsets.all(16),
+  }) {
     return Container(
       width: double.infinity,
       padding: padding,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .65),
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: RihalStyle.cardDecoration(radius: 20),
       child: child,
     );
   }
 
   Widget _heading(String value) => Padding(
     padding: const EdgeInsets.only(bottom: 10),
-    child: Text(value, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: ink)),
+    child: Text(value, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: RihalStyle.deepGreen)),
   );
 
   Widget _paragraph(String value) => Text(
@@ -143,23 +141,23 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
     if (isMuseum) {
       return _card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Row(children: [
-          Icon(Icons.access_time_filled_rounded, color: green, size: 26),
+          Icon(Icons.access_time_filled_rounded, color: RihalStyle.darkGreen, size: 26),
           SizedBox(width: 10),
-          Text('مفتوح الآن', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: green)),
+          Text('مفتوح الآن', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: RihalStyle.darkGreen)),
         ]),
         const SizedBox(height: 12),
         const Row(children: [
-          Icon(Icons.calendar_month_outlined, size: 20, color: brown),
+          Icon(Icons.calendar_month_outlined, size: 20, color: RihalStyle.brown),
           SizedBox(width: 9),
-          Expanded(child: Text('السبت – الخميس', style: TextStyle(color: ink, fontWeight: FontWeight.w600))),
-          Text('11:00 ص – 6:00 م', style: TextStyle(color: ink)),
+          Expanded(child: Text('السبت – الخميس', style: TextStyle(color: RihalStyle.deepGreen, fontWeight: FontWeight.w600))),
+          Text('11:00 ص – 6:00 م', style: TextStyle(color: RihalStyle.deepGreen)),
         ]),
         const SizedBox(height: 9),
         const Row(children: [
-          Icon(Icons.event_busy_outlined, size: 20, color: brown),
+          Icon(Icons.event_busy_outlined, size: 20, color: RihalStyle.brown),
           SizedBox(width: 9),
-          Expanded(child: Text('الجمعة', style: TextStyle(color: ink, fontWeight: FontWeight.w600))),
-          Text('مغلق', style: TextStyle(color: brown)),
+          Expanded(child: Text('الجمعة', style: TextStyle(color: RihalStyle.deepGreen, fontWeight: FontWeight.w600))),
+          Text('مغلق', style: TextStyle(color: RihalStyle.brown)),
         ]),
         const SizedBox(height: 9),
         const Text('المواعيد قابلة للتغيير في الإجازات والمناسبات.',
@@ -169,29 +167,29 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
     if (isQuba || isQubaWalk) {
       return _card(child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(Icons.access_time_filled_rounded, color: green, size: 26),
+          Icon(Icons.access_time_filled_rounded, color: RihalStyle.darkGreen, size: 26),
           SizedBox(width: 10),
-          Text('مفتوح على مدار الساعة', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: green)),
+          Text('مفتوح على مدار الساعة', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: RihalStyle.darkGreen)),
         ]),
         SizedBox(height: 10),
         Row(children: [
-          Icon(Icons.calendar_month_outlined, color: brown, size: 20),
+          Icon(Icons.calendar_month_outlined, color: RihalStyle.brown, size: 20),
           SizedBox(width: 9),
-          Text('جميع أيام الأسبوع', style: TextStyle(color: ink)),
+          Text('جميع أيام الأسبوع', style: TextStyle(color: RihalStyle.deepGreen)),
         ]),
       ]));
     }
     if (isUhud) {
       return _card(child: const Row(children: [
-        Icon(Icons.landscape_outlined, color: green),
+        Icon(Icons.landscape_outlined, color: RihalStyle.darkGreen),
         SizedBox(width: 12),
-        Expanded(child: Text('مفتوح للزيارة — لا توجد ساعات محددة مذكورة', style: TextStyle(color: ink))),
+        Expanded(child: Text('مفتوح للزيارة — لا توجد ساعات محددة مذكورة', style: TextStyle(color: RihalStyle.deepGreen))),
       ]));
     }
     return _card(child: const Row(children: [
-      Icon(Icons.access_time_rounded, color: brown),
+      Icon(Icons.access_time_rounded, color: RihalStyle.brown),
       SizedBox(width: 12),
-      Expanded(child: Text('مواعيد العمل غير متوفرة حاليًا', style: TextStyle(color: ink))),
+      Expanded(child: Text('مواعيد العمل غير متوفرة حاليًا', style: TextStyle(color: RihalStyle.deepGreen))),
     ]));
   }
 
@@ -215,10 +213,10 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
         const SizedBox(height: 22),
         _heading('الموقع'),
         _card(child: const Row(children: [
-          Icon(Icons.place_outlined, color: brown),
+          Icon(Icons.place_outlined, color: RihalStyle.brown),
           SizedBox(width: 10),
           Expanded(child: Text('مدينة المعرفة الاقتصادية، أمام محطة قطار الحرمين، شرق المدينة المنورة.',
-              style: TextStyle(color: ink, height: 1.6))),
+              style: TextStyle(color: RihalStyle.deepGreen, height: 1.6))),
         ])),
       ],
     ],
@@ -282,12 +280,12 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
 
   Widget _reviewCard(String name, String comment, int stars) => _card(
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      CircleAvatar(backgroundColor: green.withValues(alpha: .12),
-        child: const Icon(Icons.person_outline_rounded, color: green)),
+      CircleAvatar(backgroundColor: RihalStyle.cardBackgroundLight,
+        child: const Icon(Icons.person_outline_rounded, color: RihalStyle.darkGreen)),
       const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, color: ink))),
+          Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, color: RihalStyle.deepGreen))),
           ...List.generate(5, (i) => Icon(
             i < stars ? Icons.star_rounded : Icons.star_border_rounded,
             size: 17, color: const Color(0xFFF2A11C))),
@@ -301,9 +299,9 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: RihalTranslations.direction(context),
       child: Scaffold(
-        backgroundColor: beige,
+        backgroundColor: RihalStyle.background,
         body: Stack(children: [
           CustomScrollView(slivers: [
             SliverToBoxAdapter(child: SizedBox(
@@ -317,10 +315,10 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: Material(
-                        color: beige.withValues(alpha: .95),
+                        color: RihalStyle.cardBackground,
                         shape: const CircleBorder(),
                         child: IconButton(
-                          icon: const Icon(Icons.arrow_forward_ios_rounded, color: green),
+                          icon: const Icon(Icons.arrow_forward_ios_rounded, color: RihalStyle.darkGreen),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ),
@@ -344,25 +342,25 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
               child: Container(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 130),
                 decoration: const BoxDecoration(
-                  color: beige,
+                  color: RihalStyle.background,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                 ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(widget.place.name, style: const TextStyle(color: ink, fontSize: 27, fontWeight: FontWeight.bold)),
+                      Text(widget.place.name, style: const TextStyle(color: RihalStyle.deepGreen, fontSize: 27, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 5),
                       Text(categoryLabel, style: const TextStyle(color: Color(0xFF7D7167), fontSize: 14)),
                     ])),
                     Container(
                       padding: const EdgeInsets.all(13),
-                      decoration: BoxDecoration(color: green.withValues(alpha: .1), borderRadius: BorderRadius.circular(17)),
-                      child: Icon(widget.place.icon, color: brown, size: 30),
+                      decoration: BoxDecoration(color: RihalStyle.cardBackground, borderRadius: BorderRadius.circular(17), border: Border.all(color: RihalStyle.cardBorder)),
+                      child: Icon(widget.place.icon, color: RihalStyle.brown, size: 30),
                     ),
                   ]),
                   const SizedBox(height: 15),
                   Row(children: [
-                    Text(rating.toStringAsFixed(1), style: const TextStyle(color: ink, fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(rating.toStringAsFixed(1), style: const TextStyle(color: RihalStyle.deepGreen, fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(width: 7),
                     ...List.generate(5, (i) => Icon(
                       i < 4 ? Icons.star_rounded : Icons.star_half_rounded,
@@ -373,16 +371,16 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   const SizedBox(height: 14),
                   Row(children: [
                     Expanded(child: _card(padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8), child: Column(children: [
-                      const Icon(Icons.schedule_rounded, color: brown),
+                      const Icon(Icons.schedule_rounded, color: RihalStyle.brown),
                       SizedBox(height: 7),
-                      Text('مدة الزيارة', style: TextStyle(color: ink, fontWeight: FontWeight.bold, fontSize: 12)),
+                      Text('مدة الزيارة', style: TextStyle(color: RihalStyle.deepGreen, fontWeight: FontWeight.bold, fontSize: 12)),
                       Text(visitDuration, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: Color(0xFF8A7D72))),
                     ]))),
                     const SizedBox(width: 10),
                     Expanded(child: _card(padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8), child: Column(children: [
-                      const Icon(Icons.place_outlined, color: brown),
+                      const Icon(Icons.place_outlined, color: RihalStyle.brown),
                       const SizedBox(height: 7),
-                      const Text('الموقع', style: TextStyle(color: ink, fontWeight: FontWeight.bold, fontSize: 12)),
+                      const Text('الموقع', style: TextStyle(color: RihalStyle.deepGreen, fontWeight: FontWeight.bold, fontSize: 12)),
                       Text(locationLabel,
                           textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: Color(0xFF8A7D72))),
                     ]))),
@@ -396,13 +394,13 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                         duration: const Duration(milliseconds: 200),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: tab == i ? green : Colors.transparent,
+                          color: tab == i ? RihalStyle.darkGreen : Colors.transparent,
                           borderRadius: BorderRadius.circular(15),
                         ),
                         child: Text(['معلومات', 'صور', 'آراء الزوار'][i],
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                              color: tab == i ? Colors.white : ink)),
+                              color: tab == i ? Colors.white : RihalStyle.deepGreen)),
                       ),
                     )),
                   ])),
@@ -417,16 +415,12 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
           Positioned(
             left: 18, right: 18, bottom: 18,
             child: SafeArea(top: false, child: SizedBox(
-              height: 62,
+              height: RihalStyle.primaryButtonHeight,
               child: ElevatedButton.icon(
                 onPressed: () => Navigator.pop(context, widget.place),
                 icon: const Icon(Icons.add_rounded, size: 28),
                 label: const Text('إضافة إلى خطتي', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: green,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                ),
+                style: RihalStyle.primaryButtonStyle(),
               ),
             )),
           ),
