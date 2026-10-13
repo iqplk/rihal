@@ -1,8 +1,13 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../localization/rihal_localized_text.dart';
+
+import '../rihal_style.dart';
 import 'trip_plan_screen.dart';
 import 'rihal_trip_store.dart';
+import 'instant_explore_screen.dart';
+import 'profile_screen.dart';
 
-/// شاشة رحلاتي - رحلة المدينة الحالية معدّة للعرض.
+/// شاشة رحلاتي
 class MyTripsScreen extends StatefulWidget {
   const MyTripsScreen({super.key});
 
@@ -11,144 +16,445 @@ class MyTripsScreen extends StatefulWidget {
 }
 
 class _MyTripsScreenState extends State<MyTripsScreen> {
-  static const green = Color(0xFF30452D);
-  static const brown = Color(0xFF79553B);
-  static const cream = Color(0xFFF7EFE3);
   bool upcoming = true;
 
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: RihalTranslations.direction(context),
       child: Scaffold(
-        backgroundColor: cream,
+        backgroundColor: RihalStyle.background,
+
+        // ============================================================
+        // APP BAR
+        // ============================================================
         appBar: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor: cream,
+          backgroundColor: RihalStyle.background,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          title: const Text('رحلاتي', style: TextStyle(color: green, fontWeight: FontWeight.bold, fontSize: 24)),
+
+          // زر الرجوع
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: RihalStyle.darkGreen,
+              size: 21,
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+
+          title: const Text(
+            'رحلاتي',
+            style: TextStyle(
+              color: RihalStyle.deepGreen,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
+
+        // ============================================================
+        // BODY
+        // ============================================================
         body: Column(
           children: [
+            // --------------------------------------------------------
+            // Tabs
+            // --------------------------------------------------------
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+              padding: const EdgeInsets.fromLTRB(
+                RihalStyle.pageHorizontalPadding,
+                12,
+                RihalStyle.pageHorizontalPadding,
+                12,
+              ),
               child: Container(
                 padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(color: const Color(0xFFFDF8F1), borderRadius: BorderRadius.circular(18)),
-                child: Row(children: [
-                  _tab('القادمة', true),
-                  _tab('السابقة', false),
-                ]),
+                decoration: RihalStyle.cardDecoration(
+                  radius: 18,
+                ),
+                child: Row(
+                  children: [
+                    _tab(
+                      label: 'القادمة',
+                      value: true,
+                    ),
+                    _tab(
+                      label: 'السابقة',
+                      value: false,
+                    ),
+                  ],
+                ),
               ),
             ),
+
+            // --------------------------------------------------------
+            // Trips content
+            // --------------------------------------------------------
             Expanded(
               child: upcoming
-                  ? ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                      children: [
-                        ValueListenableBuilder<bool>(
-                          valueListenable: RihalTripStore.isSaved,
-                          builder: (context, isSaved, _) => isSaved
-                              ? _tripCard()
-                              : const Padding(
-                                  padding: EdgeInsets.only(top: 95),
-                                  child: Center(child: Text('لا توجد رحلات محفوظة بعد', style: TextStyle(fontSize: 18, color: brown))),
-                                ),
-                        ),
-                      ],
-                    )
-                  : Center(
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.luggage_outlined, size: 65, color: brown.withValues(alpha: .65)),
-                        const SizedBox(height: 14),
-                        const Text('لا توجد رحلات سابقة', style: TextStyle(fontSize: 18, color: brown)),
-                      ]),
-                    ),
+                  ? _upcomingTrips()
+                  : _previousTrips(),
             ),
           ],
         ),
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-            decoration: const BoxDecoration(color: Color(0xFFFCF6ED), borderRadius: BorderRadius.vertical(top: Radius.circular(23))),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-              _nav(Icons.calendar_month_rounded, 'رحلاتي', true, () {}),
-              _nav(Icons.home_rounded, 'الرئيسية', false, () => Navigator.of(context).popUntil((route) => route.isFirst)),
-              _nav(Icons.explore_outlined, 'استكشاف لحظي', false, () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('الاستكشاف اللحظي قريبًا')));
-              }),
-            ]),
+
+        // ============================================================
+        // BOTTOM NAVIGATION
+        // ============================================================
+        bottomNavigationBar: RihalBottomNavigation(
+          selectedIndex: 0,
+
+          onMyTrips: () {
+            // الصفحة الحالية
+          },
+
+          onHome: () {
+            Navigator.of(context).popUntil(
+              (route) => route.isFirst,
+            );
+          },
+
+          onExplore: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    const InstantExploreScreen(),
+              ),
+            );
+          },
+
+          onProfile: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ProfileScreen(),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // ================================================================
+  // UPCOMING TRIPS
+  // ================================================================
+
+  Widget _upcomingTrips() {
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(
+        RihalStyle.pageHorizontalPadding,
+        8,
+        RihalStyle.pageHorizontalPadding,
+        RihalStyle.pageBottomPadding,
+      ),
+      children: [
+        ValueListenableBuilder<bool>(
+          valueListenable: RihalTripStore.isSaved,
+          builder: (
+            context,
+            isSaved,
+            child,
+          ) {
+            if (isSaved) {
+              return _tripCard();
+            }
+
+            return const Padding(
+              padding: EdgeInsets.only(top: 95),
+              child: Center(
+                child: Text(
+                  'لا توجد رحلات محفوظة بعد',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: RihalStyle.brown,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  // ================================================================
+  // PREVIOUS TRIPS
+  // ================================================================
+
+  Widget _previousTrips() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.luggage_outlined,
+            size: 65,
+            color: RihalStyle.brown.withValues(
+              alpha: 0.65,
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          const Text(
+            'لا توجد رحلات سابقة',
+            style: TextStyle(
+              fontSize: 18,
+              color: RihalStyle.brown,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================================================================
+  // TABS
+  // ================================================================
+
+  Widget _tab({
+    required String label,
+    required bool value,
+  }) {
+    final bool selected = upcoming == value;
+
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(15),
+
+        onTap: () {
+          setState(() {
+            upcoming = value;
+          });
+        },
+
+        child: AnimatedContainer(
+          duration: const Duration(
+            milliseconds: 180,
+          ),
+
+          padding: const EdgeInsets.symmetric(
+            vertical: 14,
+          ),
+
+          decoration: BoxDecoration(
+            color: selected
+                ? RihalStyle.darkGreen
+                : Colors.transparent,
+
+            borderRadius: BorderRadius.circular(15),
+          ),
+
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+
+              color: selected
+                  ? Colors.white
+                  : RihalStyle.brown,
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _tab(String label, bool value) => Expanded(
-    child: InkWell(
-      borderRadius: BorderRadius.circular(15),
-      onTap: () => setState(() => upcoming = value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(color: upcoming == value ? green : Colors.transparent, borderRadius: BorderRadius.circular(15)),
-        child: Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: upcoming == value ? Colors.white : brown)),
-      ),
-    ),
-  );
+  // ================================================================
+  // TRIP CARD
+  // ================================================================
 
-  Widget _tripCard() => InkWell(
-    borderRadius: BorderRadius.circular(22),
-    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TripPlanScreen(readOnly: true))),
-    child: Container(
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF9F0),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [BoxShadow(color: brown.withValues(alpha: .10), blurRadius: 12, offset: const Offset(0, 4))],
-      ),
-      child: Row(children: [
-        Expanded(
-          flex: 5,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('رحلتي إلى المدينة المنورة', maxLines: 2, style: TextStyle(color: Color(0xFF332C25), fontSize: 19, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 11),
-            const Text('8 أكتوبر – 9 أكتوبر 2026', style: TextStyle(color: brown, fontSize: 14)),
-            const SizedBox(height: 11),
-            const Text('4 أماكن  •  يومان', style: TextStyle(color: brown, fontSize: 14)),
-            const SizedBox(height: 8),
-            const Row(children: [Icon(Icons.arrow_back_rounded, color: green, size: 18), SizedBox(width: 4), Text('عرض الخطة', style: TextStyle(color: green, fontWeight: FontWeight.w600))]),
-          ]),
+  Widget _tripCard() {
+    return Material(
+      color: Colors.transparent,
+
+      child: InkWell(
+        borderRadius: BorderRadius.circular(
+          RihalStyle.cardRadius,
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 4,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Image.asset(
-              'assets/images/quba_mosque.jpg',
-              height: 160,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(height: 160, color: const Color(0xFFE4D8C6), child: const Icon(Icons.mosque_rounded, size: 52, color: green)),
+
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  const TripPlanScreen(
+                readOnly: true,
+              ),
             ),
+          );
+        },
+
+        child: Container(
+          width: double.infinity,
+
+          padding: const EdgeInsets.all(13),
+
+          decoration:
+              RihalStyle.cardDecoration(),
+
+          child: Row(
+            children: [
+              // ------------------------------------------------------
+              // Trip information
+              // ------------------------------------------------------
+              Expanded(
+                flex: 5,
+
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+
+                  children: [
+                    const Text(
+                      'رحلتي إلى المدينة المنورة',
+
+                      maxLines: 2,
+
+                      style: TextStyle(
+                        color: RihalStyle.deepGreen,
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 11),
+
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons
+                              .calendar_month_outlined,
+                          color: RihalStyle.brown,
+                          size: 17,
+                        ),
+
+                        SizedBox(width: 6),
+
+                        Expanded(
+                          child: Text(
+                            '8 أكتوبر – 9 أكتوبر 2026',
+
+                            style: TextStyle(
+                              color:
+                                  RihalStyle.brown,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.place_outlined,
+                          color: RihalStyle.brown,
+                          size: 17,
+                        ),
+
+                        SizedBox(width: 6),
+
+                        Text(
+                          '4 أماكن  •  يومان',
+
+                          style: TextStyle(
+                            color:
+                                RihalStyle.brown,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons
+                              .arrow_back_rounded,
+                          color:
+                              RihalStyle.darkGreen,
+                          size: 18,
+                        ),
+
+                        SizedBox(width: 4),
+
+                        Text(
+                          'عرض الخطة',
+
+                          style: TextStyle(
+                            color:
+                                RihalStyle.darkGreen,
+                            fontWeight:
+                                FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              // ------------------------------------------------------
+              // Trip image
+              // ------------------------------------------------------
+              Expanded(
+                flex: 4,
+
+                child: ClipRRect(
+                  borderRadius:
+                      BorderRadius.circular(16),
+
+                  child: Image.asset(
+                    'assets/images/quba_mosque.jpg',
+
+                    height: 160,
+                    fit: BoxFit.cover,
+
+                    errorBuilder: (
+                      context,
+                      error,
+                      stackTrace,
+                    ) {
+                      return Container(
+                        height: 160,
+
+                        color: RihalStyle
+                            .cardBackgroundLight,
+
+                        alignment: Alignment.center,
+
+                        child: const Icon(
+                          Icons.mosque_rounded,
+                          size: 52,
+                          color:
+                              RihalStyle.darkGreen,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      ]),
-    ),
-  );
-
-  Widget _nav(IconData icon, String label, bool selected, VoidCallback onTap) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(12),
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, color: selected ? green : brown, size: 26),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(color: selected ? green : brown, fontSize: 12, fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
-      ]),
-    ),
-  );
+      ),
+    );
+  }
 }

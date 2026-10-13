@@ -1,4 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../localization/rihal_localized_text.dart';
+
+import '../rihal_style.dart';
+import '../localization/locale_controller.dart';
+import '../localization/rihal_language_menu.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -23,11 +28,6 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
-  // اللغة الافتراضية
-  String selectedLanguage = 'العربية';
-
-  final Color darkGreen = const Color(0xFF30452D);
-  final Color brown = const Color(0xFF6B4423);
 
   @override
   void dispose() {
@@ -41,257 +41,276 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: RihalTranslations.direction(context),
       child: Scaffold(
+        backgroundColor: RihalStyle.background,
         body: Stack(
           fit: StackFit.expand,
           children: [
-            // الخلفية
             Image.asset(
               'assets/images/2.jpg',
               fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                color: RihalStyle.background,
+              ),
+            ),
+
+            Container(
+              color: RihalStyle.background.withValues(alpha: 0.90),
             ),
 
             SafeArea(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(
+                  RihalStyle.pageHorizontalPadding,
+                  12,
+                  RihalStyle.pageHorizontalPadding,
+                  24,
                 ),
                 child: Column(
                   children: [
-                    const SizedBox(height: 15),
-
-                    // ==========================
-                    // اختيار اللغة
-                    // ==========================
-
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: PopupMenuButton<String>(
-                        onSelected: (value) {
-                          setState(() {
-                            selectedLanguage = value;
-                          });
-                        },
-                        color: const Color(0xFFF9F1E5),
-                        elevation: 5,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(
-                            value: 'العربية',
-                            child: Text('🇸🇦  العربية'),
-                          ),
-                          PopupMenuItem(
-                            value: 'English',
-                            child: Text('🇬🇧  English'),
-                          ),
-                          PopupMenuItem(
-                            value: 'Urdu',
-                            child: Text('🇵🇰  Urdu'),
-                          ),
-                          PopupMenuItem(
-                            value: 'Türkçe',
-                            child: Text('🇹🇷  Türkçe'),
-                          ),
-                        ],
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(
-                              alpha: 0.50,
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: brown.withValues(
-                                alpha: 0.10,
-                              ),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.language_rounded,
-                                size: 16,
-                                color: brown,
-                              ),
-
-                              const SizedBox(width: 5),
-
-                              Text(
-                                selectedLanguage,
-                                style: TextStyle(
-                                  color: darkGreen,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-
-                              const SizedBox(width: 2),
-
-                              Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                size: 16,
-                                color: brown,
-                              ),
-                            ],
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: RihalLanguageSelector(
+                      currentCode: LocaleScope.of(context).locale.languageCode,
+                      languages: const [
+                        RihalLanguageOption('ar', 'العربية', '🇸🇦'),
+                        RihalLanguageOption('en', 'English', '🇺🇸'),
+                        RihalLanguageOption('tr', 'Türkçe', '🇹🇷'),
+                        RihalLanguageOption('ur', 'Urdu', '🇵🇰'),
+                      ],
+                      onChanged: (code) =>
+                          LocaleScope.of(context).setLocale(Locale(code)),
+                    ),
                           ),
                         ),
-                      ),
+                        IconButton(
+                          tooltip: RihalTranslations.tr(context, 'رجوع'),
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: RihalStyle.darkGreen,
+                            size: 20,
+                          ),
+                        ),
+                      ],
                     ),
 
-                    const SizedBox(height: 8),
-
-                    // ==========================
-                    // اللوقو
-                    // ==========================
+                    const SizedBox(height: 10),
 
                     Image.asset(
                       'assets/images/1.png',
-                      width: 190,
+                      width: 145,
+                      height: 95,
                       fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.explore_rounded,
+                        color: RihalStyle.darkGreen,
+                        size: 62,
+                      ),
                     ),
 
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 4),
 
-                    Text(
-                      'إنشاء حساب',
+                    const Text(
+                      'ابدئي رحلتك مع رِحال',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: darkGreen,
-                        fontSize: 28,
+                        color: RihalStyle.deepGreen,
+                        fontSize: 25,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
 
                     const SizedBox(height: 6),
 
-                    Text(
-                      'ابدأ رحلتك معنا',
+                    const Text(
+                      'أنشئي حسابك وابدئي تخطيط رحلاتك بسهولة',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: brown,
-                        fontSize: 17,
-                      ),
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    // ==========================
-                    // اسم المستخدم
-                    // ==========================
-
-                    _buildTextField(
-                      controller: _usernameController,
-                      hint: 'اسم المستخدم',
-                      icon: Icons.person_outline_rounded,
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // ==========================
-                    // البريد الإلكتروني
-                    // ==========================
-
-                    _buildTextField(
-                      controller: _emailController,
-                      hint: 'البريد الإلكتروني',
-                      icon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // ==========================
-                    // كلمة المرور
-                    // ==========================
-
-                    _buildTextField(
-                      controller: _passwordController,
-                      hint: 'كلمة المرور',
-                      icon: Icons.lock_outline_rounded,
-                      isPassword: true,
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // ==========================
-                    // تأكيد كلمة المرور
-                    // ==========================
-
-                    _buildTextField(
-                      controller: _confirmPasswordController,
-                      hint: 'تأكيد كلمة المرور',
-                      icon: Icons.lock_outline_rounded,
-                      isConfirmPassword: true,
-                    ),
-
-                    const SizedBox(height: 25),
-
-                    // ==========================
-                    // إنشاء حساب
-                    // ==========================
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 62,
-                      child: ElevatedButton(
-                        onPressed: _createAccount,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: darkGreen,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                        ),
-                        child: const Text(
-                          'إنشاء حساب',
-                          style: TextStyle(
-                            fontSize: 21,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        color: RihalStyle.secondaryText,
+                        fontSize: 13.5,
+                        height: 1.5,
                       ),
                     ),
 
                     const SizedBox(height: 22),
 
-                    // ==========================
-                    // العودة لتسجيل الدخول
-                    // ==========================
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'لديك حساب بالفعل؟ ',
-                          style: TextStyle(
-                            color: Color(0xFF4B3A2B),
-                            fontSize: 16,
-                          ),
-                        ),
-
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pop(context);
-                          },
-                          child: Text(
-                            'تسجيل الدخول',
+                    RihalCard(
+                      padding: const EdgeInsets.fromLTRB(
+                        18,
+                        22,
+                        18,
+                        20,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'إنشاء حساب',
                             style: TextStyle(
-                              color: darkGreen,
-                              fontSize: 16,
+                              color: RihalStyle.deepGreen,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      ],
+
+                          const SizedBox(height: 5),
+
+                          const Text(
+                            'أدخلي بياناتك لإنشاء حساب جديد',
+                            style: TextStyle(
+                              color: RihalStyle.secondaryText,
+                              fontSize: 12,
+                            ),
+                          ),
+
+                          const SizedBox(height: 19),
+
+                          _fieldLabel('اسم المستخدم'),
+
+                          const SizedBox(height: 7),
+
+                          _buildTextField(
+                            controller: _usernameController,
+                            hint: 'أدخلي اسم المستخدم',
+                            icon: Icons.person_outline_rounded,
+                            textInputAction: TextInputAction.next,
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          _fieldLabel('البريد الإلكتروني'),
+
+                          const SizedBox(height: 7),
+
+                          _buildTextField(
+                            controller: _emailController,
+                            hint: 'example@email.com',
+                            icon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          _fieldLabel('كلمة المرور'),
+
+                          const SizedBox(height: 7),
+
+                          _buildTextField(
+                            controller: _passwordController,
+                            hint: 'أدخلي كلمة المرور',
+                            icon: Icons.lock_outline_rounded,
+                            isPassword: true,
+                            textInputAction: TextInputAction.next,
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          _fieldLabel('تأكيد كلمة المرور'),
+
+                          const SizedBox(height: 7),
+
+                          _buildTextField(
+                            controller: _confirmPasswordController,
+                            hint: 'أعيدي إدخال كلمة المرور',
+                            icon: Icons.lock_reset_rounded,
+                            isConfirmPassword: true,
+                            textInputAction: TextInputAction.done,
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          SizedBox(
+                            width: double.infinity,
+                            height: RihalStyle.primaryButtonHeight,
+                            child: ElevatedButton.icon(
+                              onPressed: _createAccount,
+                              style: RihalStyle.primaryButtonStyle(),
+                              icon: const Icon(
+                                Icons.person_add_alt_1_rounded,
+                                size: 20,
+                              ),
+                              label: const Text(
+                                'إنشاء حساب',
+                                style: TextStyle(
+                                  fontSize:
+                                      RihalStyle.primaryButtonTextSize,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 18),
+
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 13,
+                      ),
+                      decoration: BoxDecoration(
+                        color: RihalStyle.cardBackground,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: RihalStyle.cardBorder,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'لديك حساب بالفعل؟',
+                            style: TextStyle(
+                              color: RihalStyle.secondaryText,
+                              fontSize: 13,
+                            ),
+                          ),
+
+                          const SizedBox(width: 5),
+
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              foregroundColor:
+                                  RihalStyle.darkGreen,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 4,
+                              ),
+                            ),
+                            child: const Text(
+                              'تسجيل الدخول',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    const Text(
+                      'بإنشاء الحساب فإنك توافقين على سياسة الخصوصية وشروط الاستخدام',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: RihalStyle.secondaryText,
+                        fontSize: 10.5,
+                        height: 1.45,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -302,9 +321,18 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  // ==========================
-  // تصميم حقول الإدخال
-  // ==========================
+  Widget _languageSelector() => const RihalLanguageMenu();
+
+  Widget _fieldLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: RihalStyle.deepGreen,
+        fontSize: 12.5,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -313,43 +341,49 @@ class _SignupScreenState extends State<SignupScreen> {
     bool isPassword = false,
     bool isConfirmPassword = false,
     TextInputType keyboardType = TextInputType.text,
+    TextInputAction textInputAction = TextInputAction.next,
   }) {
-    bool obscure = false;
-
-    if (isPassword) {
-      obscure = _obscurePassword;
-    }
-
-    if (isConfirmPassword) {
-      obscure = _obscureConfirmPassword;
-    }
+    final bool obscure = isPassword
+        ? _obscurePassword
+        : isConfirmPassword
+            ? _obscureConfirmPassword
+            : false;
 
     return Container(
-      height: 67,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: brown.withValues(alpha: 0.25),
-        ),
+      height: 54,
+      decoration: RihalStyle.fieldDecoration(
+        radius: RihalStyle.fieldRadius,
       ),
       child: TextField(
         controller: controller,
         obscureText: obscure,
         keyboardType: keyboardType,
-        textAlign: TextAlign.right,
+        textInputAction: textInputAction,
+        onSubmitted: textInputAction == TextInputAction.done
+            ? (_) => _createAccount()
+            : null,
+        textAlign: TextAlign.start,
+        style: const TextStyle(
+          color: RihalStyle.deepGreen,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
         decoration: InputDecoration(
-          hintText: hint,
+          hintText: RihalTranslations.tr(context, hint),
           hintStyle: const TextStyle(
-            color: Color(0xFF8B8178),
-            fontSize: 16,
+            color: RihalStyle.searchHint,
+            fontSize: 13,
           ),
           prefixIcon: Icon(
             icon,
-            color: brown,
+            color: RihalStyle.brown,
+            size: 21,
           ),
           suffixIcon: (isPassword || isConfirmPassword)
               ? IconButton(
+                  tooltip: obscure
+                      ? 'إظهار كلمة المرور'
+                      : 'إخفاء كلمة المرور',
                   onPressed: () {
                     setState(() {
                       if (isPassword) {
@@ -367,34 +401,25 @@ class _SignupScreenState extends State<SignupScreen> {
                     obscure
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
-                    color: brown,
+                    color: RihalStyle.brown,
+                    size: 21,
                   ),
                 )
               : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 22,
+            horizontal: 14,
+            vertical: 16,
           ),
         ),
       ),
     );
   }
 
-  // ==========================
-  // إنشاء الحساب
-  // ==========================
-
   void _createAccount() {
-    final username =
-        _usernameController.text.trim();
-
-    final email =
-        _emailController.text.trim();
-
-    final password =
-        _passwordController.text;
-
+    final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
     final confirmPassword =
         _confirmPasswordController.text;
 
@@ -406,22 +431,43 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
+    if (!email.contains('@') ||
+        !email.contains('.')) {
+      _showMessage('أدخلي بريدًا إلكترونيًا صحيحًا');
+      return;
+    }
+
+    if (password.length < 6) {
+      _showMessage(
+        'يجب أن تكون كلمة المرور 6 أحرف على الأقل',
+      );
+      return;
+    }
+
     if (password != confirmPassword) {
       _showMessage('كلمتا المرور غير متطابقتين');
       return;
     }
 
-    // لاحقاً نربطه بقاعدة البيانات
     _showMessage('تم إنشاء الحساب بنجاح');
-  }
 
-  // ==========================
-  // الرسائل
-  // ==========================
+    Future.delayed(
+      const Duration(milliseconds: 700),
+      () {
+        if (!mounted) return;
+        Navigator.pop(context);
+      },
+    );
+  }
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
+        backgroundColor: RihalStyle.darkGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
         content: Text(
           message,
           textAlign: TextAlign.center,
@@ -430,3 +476,4 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 }
+

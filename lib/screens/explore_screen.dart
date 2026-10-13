@@ -1,10 +1,23 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:flutter/material.dart' hide Text;
+import '../localization/rihal_localized_text.dart';
+
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
+
+import '../rihal_style.dart';
 
 import 'place_details_screen.dart';
 import 'trip_plan_screen.dart';
+import 'my_trips_screen.dart';
 import 'instant_explore_screen.dart';
+import 'profile_screen.dart';
+
+// ==========================================
+// EXPLORE SCREEN
+// ==========================================
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -14,146 +27,666 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  final MapController _mapController = MapController();
+  // ==========================================
+  // CONTROLLERS
+  // ==========================================
 
-  final Color darkGreen = const Color(0xFF30452D);
-  final Color brown = const Color(0xFF7B5235);
-  final Color beige = const Color(0xFFF8F0E4);
+  final MapController _mapController = MapController();
 
   final TextEditingController _searchController =
       TextEditingController();
 
+  // ==========================================
+  // MAP DATA
+  // ==========================================
+
+  final LatLng madinahCenter = const LatLng(
+    24.4672,
+    39.6111,
+  );
+
+  LatLng? _currentLocation;
+
+  bool _isGettingLocation = false;
+
+  // ==========================================
+  // FILTERS
+  // ==========================================
+
   String selectedMainFilter = 'الكل';
+
   String selectedCategory = 'الكل';
 
-  // ============================
-  // الأماكن المضافة إلى الخطة
-  // ============================
+  // ==========================================
+  // SELECTED PLACES
+  // ==========================================
 
   final List<RihalPlace> selectedPlaces = [];
 
-  // ============================
-  // مركز المدينة المنورة
-  // ============================
-
-  final LatLng madinahCenter =
-      const LatLng(24.4672, 39.6111);
-
-  // ============================
-  // المعالم
-  // ============================
+  // ==========================================
+  // PLACES
+  // ==========================================
 
   final List<RihalPlace> places = [
     RihalPlace(
       name: 'المسجد النبوي',
       category: 'دينية',
-      location: const LatLng(24.4672, 39.6111),
+      location: const LatLng(
+        24.4686804,
+        39.611162,
+      ),
       icon: Icons.mosque_rounded,
+      imagePath: 'assets/images/majid-nabawi.jpeg',
     ),
+
     RihalPlace(
       name: 'مسجد قباء',
       category: 'دينية',
-      location: const LatLng(24.4397, 39.6172),
+      location: const LatLng(
+        24.4394233,
+        39.6174593,
+      ),
       icon: Icons.mosque_rounded,
+      imagePath: 'assets/images/quba_mosque.jpg',
     ),
-    RihalPlace(
-      name: 'جبل أحد',
-      category: 'معالم',
-      location: const LatLng(24.5039, 39.6137),
-      icon: Icons.landscape_rounded,
-    ),
+
     RihalPlace(
       name: 'مسجد القبلتين',
       category: 'دينية',
-      location: const LatLng(24.4841, 39.5788),
+      location: const LatLng(
+        24.4840861,
+        39.5789083,
+      ),
       icon: Icons.mosque_rounded,
+      imagePath: 'assets/images/gblteen.jpg',
     ),
+
+    RihalPlace(
+      name: 'جبل أحد',
+      category: 'معالم',
+      location: const LatLng(
+        24.5227316,
+        39.6182613,
+      ),
+      icon: Icons.landscape_rounded,
+    ),
+
+    RihalPlace(
+      name: 'جبل عَيْر',
+      category: 'معالم',
+      location: const LatLng(
+        24.407749,
+        39.565148,
+      ),
+      icon: Icons.landscape_rounded,
+      imagePath:
+          'assets/images/jabal-ayr-madinah.2e16d0ba.fill-1920x1080.jpeg',
+    ),
+
+    RihalPlace(
+      name: 'الحي التراثي',
+      category: 'تراثي',
+      location: const LatLng(
+        24.417379,
+        39.60968,
+      ),
+      icon: Icons.account_balance_rounded,
+      imagePath: 'assets/images/hitrathe.jpeg',
+    ),
+
+    RihalPlace(
+      name: 'حي المغيسلة',
+      category: 'تراثي',
+      location: const LatLng(
+        24.45685,
+        39.60083,
+      ),
+      icon: Icons.location_city_rounded,
+      imagePath: 'assets/images/row.jpg',
+    ),
+
+    RihalPlace(
+      name: 'المعرض والمتحف الدولي للسيرة النبوية',
+      category: 'متاحف',
+      location: const LatLng(
+        24.4658057,
+        39.6093539,
+      ),
+      icon: Icons.museum_rounded,
+      imagePath: 'assets/images/mthfaldoliserahnboi.jpeg',
+    ),
+
     RihalPlace(
       name: 'متحف دار المدينة',
       category: 'متاحف',
-      location: const LatLng(24.4515, 39.6534),
+      location: const LatLng(
+        24.4766728,
+        39.6876878,
+      ),
       icon: Icons.museum_rounded,
+      imagePath:
+          'assets/images/dar_al_madinah_museum.jpg',
     ),
-    RihalPlace(
-      name: 'سكة الحجاز',
-      category: 'متاحف',
-      location: const LatLng(24.4593, 39.6004),
-      icon: Icons.train_rounded,
-    ),
+
     RihalPlace(
       name: 'جادة قباء',
-      category: 'ترفيه',
-      location: const LatLng(24.4545, 39.6108),
-      icon: Icons.directions_walk_rounded,
+      category: 'فعاليات',
+      location: const LatLng(
+        24.4594117,
+        39.6081509,
+      ),
+      icon: Icons.celebration_rounded,
     ),
+
     RihalPlace(
       name: 'الراشد ميغا مول',
       category: 'أسواق',
-      location: const LatLng(24.4780, 39.6650),
+      location: const LatLng(
+        24.4780,
+        39.6650,
+      ),
       icon: Icons.shopping_bag_rounded,
+      imagePath: 'assets/images/alrashdmall.jpg',
+    ),
+
+    RihalPlace(
+      name: 'بيت سعف',
+      category: 'مطاعم',
+      location: const LatLng(
+        24.44006,
+        39.521361,
+      ),
+      icon: Icons.restaurant_rounded,
+      imagePath: 'assets/images/bets3f.jpg',
+    ),
+
+    RihalPlace(
+      name: 'كِفّة',
+      category: 'مقاهي',
+      location: const LatLng(
+        24.4869,
+        39.6495,
+      ),
+      icon: Icons.local_cafe_rounded,
+      imagePath: 'assets/images/kfah.jpg',
+    ),
+
+    RihalPlace(
+      name: 'مطعم طُعمة',
+      category: 'مطاعم',
+      location: const LatLng(
+        24.4402965,
+        39.6629878,
+      ),
+      icon: Icons.restaurant_rounded,
+      imagePath: 'assets/images/t3maai.jpg',
+    ),
+
+    RihalPlace(
+      name: 'مطعم زمان جَدّي',
+      category: 'مطاعم',
+      location: const LatLng(
+        24.4335042,
+        39.6554209,
+      ),
+      icon: Icons.restaurant_rounded,
+      imagePath: 'assets/images/zmanjdi.jpg',
+    ),
+
+    RihalPlace(
+      name: 'مسجد الميقات',
+      category: 'دينية',
+      location: const LatLng(
+        24.412222,
+        39.542500,
+      ),
+      icon: Icons.mosque_rounded,
+      imagePath: 'assets/images/megat.jpg',
+    ),
+
+    RihalPlace(
+      name: 'متحف وبستان الصافية',
+      category: 'متاحف',
+      location: const LatLng(
+        24.463760,
+        39.610990,
+      ),
+      icon: Icons.museum_rounded,
+      imagePath: 'assets/images/mthfbstanalsafih.jpg',
+    ),
+
+    RihalPlace(
+      name: 'تجربة السيرة - الرحلة إلى قباء',
+      category: 'دينية',
+      location: const LatLng(
+        24.440200,
+        39.617000,
+      ),
+      icon: Icons.auto_stories_rounded,
+      imagePath:
+          'assets/images/sirah-six.2e16d0ba.fill-1920x1080..jpeg',
+    ),
+
+    RihalPlace(
+      name: 'مزرعة المربد',
+      category: 'فعاليات',
+      location: const LatLng(
+        24.442390,
+        39.628370,
+      ),
+      icon: Icons.celebration_rounded,
+      imagePath: 'assets/images/al-marbad-farm.jpg.jpeg',
+    ),
+
+    RihalPlace(
+      name: 'مقصد قباء',
+      category: 'فعاليات',
+      location: const LatLng(
+        24.437210,
+        39.616390,
+      ),
+      icon: Icons.celebration_rounded,
+      imagePath: 'assets/images/mgsdgba.jpg',
+    ),
+
+    RihalPlace(
+      name: 'سوشل فارم',
+      category: 'فعاليات',
+      location: const LatLng(
+        24.432700,
+        39.630900,
+      ),
+      icon: Icons.celebration_rounded,
+      imagePath: 'assets/images/soshealfarm.jpg',
+    ),
+
+    RihalPlace(
+      name: 'كوفيماتكس',
+      category: 'مقاهي',
+      location: const LatLng(
+        24.468900,
+        39.620800,
+      ),
+      icon: Icons.local_cafe_rounded,
+      imagePath: 'assets/images/coffematex.jpeg',
     ),
   ];
+
+  // ==========================================
+  // DISPOSE
+  // ==========================================
 
   @override
   void dispose() {
     _searchController.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
-  // ============================
-  // فلترة الأماكن
-  // ============================
+  // ==========================================
+  // FILTERED PLACES
+  // ==========================================
 
   List<RihalPlace> get filteredPlaces {
+    const entertainmentCategories = {
+      'مطاعم',
+      'مقاهي',
+      'فعاليات',
+      'أسواق',
+      'متاحف',
+    };
+
     return places.where((place) {
-      final String search =
+      final search =
           _searchController.text.trim().toLowerCase();
 
       bool matchesSearch = true;
-      bool matchesMain = true;
-      bool matchesCategory = true;
+
+      bool matchesFilter = true;
+
+      // ========================================
+      // SEARCH
+      // ========================================
 
       if (search.isNotEmpty) {
+        final localizedName =
+            RihalTranslations.tr(
+          context,
+          place.name,
+        ).toLowerCase();
+
         matchesSearch =
-            place.name.toLowerCase().contains(search);
+            place.name.toLowerCase().contains(search) ||
+                localizedName.contains(search);
       }
 
-      if (selectedMainFilter == 'دينية') {
-        matchesMain = place.category == 'دينية';
-      } else if (selectedMainFilter == 'ترفيه') {
-        matchesMain = place.category != 'دينية';
+      // ========================================
+      // ALL
+      // ========================================
+
+      if (selectedMainFilter == 'الكل') {
+        matchesFilter = true;
       }
 
-      if (selectedCategory != 'الكل') {
-        matchesCategory =
-            place.category == selectedCategory;
+      // ========================================
+      // RELIGIOUS
+      // ========================================
+
+      else if (selectedMainFilter == 'دينية') {
+        matchesFilter =
+            place.category == 'دينية';
       }
 
-      return matchesSearch &&
-          matchesMain &&
-          matchesCategory;
+      // ========================================
+      // HERITAGE
+      // ========================================
+
+      else if (selectedMainFilter == 'تراثي') {
+        matchesFilter =
+            place.category == 'تراثي';
+      }
+
+      // ========================================
+      // ENTERTAINMENT
+      // ========================================
+
+      else if (selectedMainFilter == 'ترفيه') {
+        if (selectedCategory == 'الكل') {
+          matchesFilter =
+              entertainmentCategories.contains(
+            place.category,
+          );
+        } else {
+          matchesFilter =
+              place.category == selectedCategory;
+        }
+      }
+
+      return matchesSearch && matchesFilter;
     }).toList();
   }
+
+  // ==========================================
+  // LOCATION MESSAGE
+  // ==========================================
+
+  void _showLocationMessage(
+    String message,
+  ) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+        ),
+        backgroundColor:
+            RihalStyle.darkGreen,
+        behavior:
+            SnackBarBehavior.floating,
+        duration:
+            const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.circular(14),
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // GET CURRENT LOCATION
+  // ==========================================
+
+  Future<void> _getCurrentLocation() async {
+    if (_isGettingLocation) {
+      return;
+    }
+
+    setState(() {
+      _isGettingLocation = true;
+    });
+
+    try {
+      final enabled =
+          await Geolocator.isLocationServiceEnabled();
+
+      if (!mounted) return;
+
+      if (!enabled) {
+        _showLocationMessage(
+          'فعّلي خدمات الموقع من إعدادات الجهاز',
+        );
+        return;
+      }
+
+      LocationPermission permission =
+          await Geolocator.checkPermission();
+
+      if (!mounted) return;
+
+      if (permission ==
+          LocationPermission.denied) {
+        permission =
+            await Geolocator.requestPermission();
+
+        if (!mounted) return;
+      }
+
+      if (permission ==
+          LocationPermission.denied) {
+        _showLocationMessage(
+          'يرجى السماح للتطبيق بالوصول إلى الموقع',
+        );
+
+        return;
+      }
+
+      if (permission ==
+          LocationPermission.deniedForever) {
+        _showLocationMessage(
+          'فعّلي إذن الموقع من إعدادات التطبيق',
+        );
+
+        return;
+      }
+
+      final cached =
+          await Geolocator.getLastKnownPosition();
+
+      if (!mounted) return;
+
+      if (cached != null) {
+        _moveToCurrentLocation(
+          LatLng(
+            cached.latitude,
+            cached.longitude,
+          ),
+        );
+      }
+
+      final fresh =
+          await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(
+          accuracy:
+              LocationAccuracy.medium,
+          timeLimit:
+              Duration(seconds: 12),
+        ),
+      );
+
+      if (!mounted) return;
+
+      _moveToCurrentLocation(
+        LatLng(
+          fresh.latitude,
+          fresh.longitude,
+        ),
+      );
+
+      _showLocationMessage(
+        'تم تحديث موقعك الحالي',
+      );
+    } on TimeoutException {
+      if (mounted) {
+        _showLocationMessage(
+          'تأخر تحديد الموقع، حاولي مرة أخرى',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        _showLocationMessage(
+          'تعذر تحديد الموقع، تأكدي من تشغيل GPS',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGettingLocation = false;
+        });
+      }
+    }
+  }
+
+  // ==========================================
+  // MOVE TO CURRENT LOCATION
+  // ==========================================
+
+  void _moveToCurrentLocation(
+    LatLng point,
+  ) {
+    setState(() {
+      _currentLocation = point;
+    });
+
+    _mapController.move(
+      point,
+      16,
+    );
+  }
+
+  // ==========================================
+  // ZOOM IN
+  // ==========================================
+
+  void _zoomIn() {
+    final zoom =
+        (_mapController.camera.zoom + 1)
+            .clamp(
+              3.0,
+              18.0,
+            )
+            .toDouble();
+
+    _mapController.move(
+      _mapController.camera.center,
+      zoom,
+    );
+  }
+
+  // ==========================================
+  // ZOOM OUT
+  // ==========================================
+
+  void _zoomOut() {
+    final zoom =
+        (_mapController.camera.zoom - 1)
+            .clamp(
+              3.0,
+              18.0,
+            )
+            .toDouble();
+
+    _mapController.move(
+      _mapController.camera.center,
+      zoom,
+    );
+  }
+
+  // ==========================================
+  // MAIN FILTER
+  // ==========================================
+
+  Widget _mainFilter(
+    String title,
+  ) {
+    return RihalExploreMainFilter(
+      title: title,
+      selected:
+          selectedMainFilter == title,
+      onTap: () {
+        setState(() {
+          selectedMainFilter = title;
+
+          // نلغي الفئة الفرعية القديمة
+          selectedCategory = 'الكل';
+        });
+      },
+    );
+  }
+
+  // ==========================================
+  // CATEGORY BUTTON
+  // ==========================================
+
+  Widget _categoryButton({
+    required String title,
+    required IconData icon,
+  }) {
+    return RihalExploreCategoryButton(
+      title: title,
+      icon: icon,
+      selected:
+          selectedCategory == title,
+      onTap: () {
+        setState(() {
+          selectedMainFilter = 'ترفيه';
+
+          if (selectedCategory == title) {
+            selectedCategory = 'الكل';
+          } else {
+            selectedCategory = title;
+          }
+        });
+      },
+    );
+  }
+
+  // ==========================================
+  // BUILD
+  // ==========================================
 
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection:
+          RihalTranslations.direction(
+        context,
+      ),
       child: Scaffold(
+        backgroundColor:
+            RihalStyle.background,
         body: Stack(
           children: [
-            // ============================
-            // الخريطة
-            // ============================
+            // ==================================
+            // MAP
+            // ==================================
 
             Positioned.fill(
               child: FlutterMap(
-                mapController: _mapController,
+                mapController:
+                    _mapController,
                 options: MapOptions(
-                  initialCenter: madinahCenter,
-                  initialZoom: 13.5,
-                  minZoom: 4,
-                  maxZoom: 18,
+                  initialCenter:
+                      madinahCenter,
+                  initialZoom:
+                      13.5,
+                  minZoom:
+                      4,
+                  maxZoom:
+                      18,
                 ),
                 children: [
                   TileLayer(
@@ -163,216 +696,223 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         'com.example.rihal',
                   ),
 
+                  // ==================================
+                  // PLACE MARKERS
+                  // ==================================
+
                   MarkerLayer(
-                    markers: filteredPlaces.map((place) {
-                      return Marker(
-                        point: place.location,
-                        width: 150,
-                        height: 82,
-                        child: _buildPlaceMarker(place),
-                      );
-                    }).toList(),
+                    markers:
+                        filteredPlaces.map(
+                      (place) {
+                        return Marker(
+                          point:
+                              place.location,
+                          width:
+                              150,
+                          height:
+                              82,
+                          child:
+                              _buildPlaceMarker(
+                            place,
+                          ),
+                        );
+                      },
+                    ).toList(),
                   ),
+
+                  // ==================================
+                  // CURRENT LOCATION MARKER
+                  // ==================================
+
+                  if (_currentLocation != null)
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point:
+                              _currentLocation!,
+                          width:
+                              54,
+                          height:
+                              54,
+                          child:
+                              const RihalExploreCurrentLocationMarker(),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
 
-            // لمسة لونية خفيفة
+            // ==================================
+            // MAP TINT
+            // ==================================
+
             IgnorePointer(
               child: Container(
-                color: const Color(0xFF8B6949)
-                    .withValues(alpha: 0.025),
+                color:
+                    RihalStyle.brown
+                        .withValues(
+                  alpha:
+                      0.025,
+                ),
               ),
             ),
 
-            // ============================
-            // أعلى الشاشة
-            // ============================
+            // ==================================
+            // TOP AREA
+            // ==================================
 
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  15,
-                  12,
-                  15,
+                padding:
+                    const EdgeInsets.fromLTRB(
+                  RihalStyle
+                      .pageHorizontalPadding,
+                  RihalStyle.spaceMd,
+                  RihalStyle
+                      .pageHorizontalPadding,
                   0,
                 ),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisSize:
+                      MainAxisSize.min,
                   children: [
                     // ============================
-                    // المستخدم + البحث + الطبقات
+                    // SEARCH BAR
                     // ============================
 
                     Row(
                       children: [
-                        _circleButton(
-                          icon:
-                              Icons.person_outline_rounded,
-                          onTap: () {
-                            // صفحة الحساب لاحقاً
-                          },
-                        ),
-
-                        const SizedBox(width: 9),
-
                         Expanded(
-                          child: Container(
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: beige.withValues(
-                                alpha: 0.97,
-                              ),
-                              borderRadius:
-                                  BorderRadius.circular(27),
-                              boxShadow: [
-                                BoxShadow(
-                                  color:
-                                      Colors.black.withValues(
-                                    alpha: 0.12,
-                                  ),
-                                  blurRadius: 12,
-                                  offset:
-                                      const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: TextField(
-                              controller:
-                                  _searchController,
-                              onChanged: (_) {
-                                setState(() {});
-                              },
-                              textAlign: TextAlign.right,
-                              decoration: InputDecoration(
-                                hintText:
-                                    'ابحث عن معلم، مطعم، مقهى...',
-                                hintStyle:
-                                    const TextStyle(
-                                  color:
-                                      Color(0xFF958A80),
-                                  fontSize: 13,
-                                ),
-                                prefixIcon: Icon(
-                                  Icons.search_rounded,
-                                  color: brown,
-                                ),
-                                border: InputBorder.none,
-                                contentPadding:
-                                    const EdgeInsets
-                                        .symmetric(
-                                  vertical: 16,
-                                ),
-                              ),
-                            ),
+                          child:
+                              RihalExploreSearchField(
+                            controller:
+                                _searchController,
+                            onChanged: (_) {
+                              setState(() {});
+                            },
                           ),
                         ),
 
-                        const SizedBox(width: 9),
+                        const SizedBox(
+                          width: 9,
+                        ),
 
-                        _circleButton(
-                          icon: Icons.layers_rounded,
-                          onTap: _showMapOptions,
+                        RihalExploreCircleButton(
+                          icon:
+                              Icons.layers_rounded,
+                          onTap:
+                              _showMapOptions,
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(
+                      height: 12,
+                    ),
 
                     // ============================
-                    // الكل / ترفيه / دينية
+                    // MAIN FILTERS
                     // ============================
 
-                    Container(
-                      height: 47,
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: beige.withValues(
-                          alpha: 0.97,
+                    RihalExploreFilterBar(
+                      children: [
+                        _mainFilter(
+                          'الكل',
                         ),
-                        borderRadius:
-                            BorderRadius.circular(25),
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                Colors.black.withValues(
-                              alpha: 0.09,
+
+                        _mainFilter(
+                          'ترفيه',
+                        ),
+
+                        _mainFilter(
+                          'دينية',
+                        ),
+
+                        _mainFilter(
+                          'تراثي',
+                        ),
+                      ],
+                    ),
+
+                    // ============================
+                    // ENTERTAINMENT SUBCATEGORIES
+                    // ============================
+
+                    if (selectedMainFilter ==
+                        'ترفيه') ...[
+                      const SizedBox(
+                        height: 10,
+                      ),
+
+                      SizedBox(
+                        height:
+                            RihalStyle
+                                .exploreCategoryHeight,
+                        child: ListView(
+                          scrollDirection:
+                              Axis.horizontal,
+                          children: [
+                            _categoryButton(
+                              title:
+                                  'مطاعم',
+                              icon:
+                                  Icons.restaurant_rounded,
                             ),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          _mainFilter('الكل'),
-                          _mainFilter('ترفيه'),
-                          _mainFilter('دينية'),
-                        ],
-                      ),
-                    ),
 
-                    const SizedBox(height: 10),
+                            _categoryButton(
+                              title:
+                                  'مقاهي',
+                              icon:
+                                  Icons.local_cafe_rounded,
+                            ),
 
-                    // ============================
-                    // التصنيفات
-                    // ============================
+                            _categoryButton(
+                              title:
+                                  'فعاليات',
+                              icon:
+                                  Icons.celebration_outlined,
+                            ),
 
-                    SizedBox(
-                      height: 72,
-                      child: ListView(
-                        scrollDirection:
-                            Axis.horizontal,
-                        children: [
-                          _categoryButton(
-                            title: 'مطاعم',
-                            icon:
-                                Icons.restaurant_rounded,
-                          ),
-                          _categoryButton(
-                            title: 'مقاهي',
-                            icon:
-                                Icons.local_cafe_rounded,
-                          ),
-                          _categoryButton(
-                            title: 'فعاليات',
-                            icon: Icons
-                                .celebration_outlined,
-                          ),
-                          _categoryButton(
-                            title: 'معالم',
-                            icon:
-                                Icons.landscape_outlined,
-                          ),
-                          _categoryButton(
-                            title: 'متاحف',
-                            icon:
-                                Icons.museum_outlined,
-                          ),
-                          _categoryButton(
-                            title: 'أسواق',
-                            icon: Icons
-                                .shopping_bag_outlined,
-                          ),
-                        ],
+                            _categoryButton(
+                              title:
+                                  'أسواق',
+                              icon:
+                                  Icons.shopping_bag_outlined,
+                            ),
+
+                            _categoryButton(
+                              title:
+                                  'متاحف',
+                              icon:
+                                  Icons.museum_outlined,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
             ),
 
-            // ============================
-            // أزرار الخريطة
-            // ============================
+            // ==================================
+            // MAP CONTROL BUTTONS
+            // ==================================
 
             Positioned(
               left: 16,
               bottom:
-                  selectedPlaces.isEmpty ? 125 : 210,
+                  selectedPlaces.isEmpty
+                      ? 125
+                      : 210,
               child: Column(
+                mainAxisSize:
+                    MainAxisSize.min,
                 children: [
-                  _mapActionButton(
-                    icon: Icons.navigation_rounded,
+                  RihalMapButton(
+                    icon:
+                        Icons.navigation_rounded,
                     onTap: () {
                       _mapController.move(
                         madinahCenter,
@@ -381,105 +921,109 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     },
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(
+                    height: 10,
+                  ),
 
-                  _mapActionButton(
-                    icon: Icons.my_location_rounded,
-                    onTap: () {
-                      _mapController.move(
-                        madinahCenter,
-                        15,
-                      );
-                    },
+                  RihalMapButton(
+                    icon:
+                        Icons.my_location_rounded,
+                    onTap:
+                        _getCurrentLocation,
+                    loading:
+                        _isGettingLocation,
+                  ),
+
+                  const SizedBox(
+                    height: 10,
+                  ),
+
+                  RihalMapButton(
+                    icon:
+                        Icons.add_rounded,
+                    onTap:
+                        _zoomIn,
+                  ),
+
+                  const SizedBox(
+                    height: 9,
+                  ),
+
+                  RihalMapButton(
+                    icon:
+                        Icons.remove_rounded,
+                    onTap:
+                        _zoomOut,
                   ),
                 ],
               ),
             ),
 
-            // ============================
-            // كرت خطتي
-            // يظهر عند إضافة مكان
-            // ============================
+            // ==================================
+            // PLAN CARD
+            // ==================================
 
             if (selectedPlaces.isNotEmpty)
               Positioned(
-                right: 15,
-                left: 15,
-                bottom: 105,
-                child: _buildMyPlanCard(),
+                right:
+                    RihalStyle
+                        .pageHorizontalPadding,
+                left:
+                    RihalStyle
+                        .pageHorizontalPadding,
+                bottom:
+                    105,
+                child:
+                    _buildMyPlanCard(),
               ),
 
-            // ============================
-            // القائمة السفلية
-            // ============================
+            // ==================================
+            // BOTTOM NAVIGATION
+            // ==================================
 
             Positioned(
-              right: 0,
-              left: 0,
-              bottom: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF9F1E5)
-                      .withValues(alpha: 0.98),
-                  borderRadius:
-                      const BorderRadius.only(
-                    topLeft: Radius.circular(25),
-                    topRight: Radius.circular(25),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color:
-                          Colors.black.withValues(
-                        alpha: 0.12,
-                      ),
-                      blurRadius: 18,
-                      offset: const Offset(0, -3),
-                    ),
-                  ],
-                ),
-                child: SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.only(
-                      top: 11,
-                      bottom: 10,
-                    ),
-                    child: Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment
-                              .spaceAround,
-                      children: [
-                        _bottomItem(
-                          icon: Icons
-                              .calendar_month_outlined,
-                          label: 'رحلاتي',
-                          selected: false,
-                          onTap: () {
-                            // نربطه لاحقاً
-                          },
-                        ),
+              right:
+                  0,
+              left:
+                  0,
+              bottom:
+                  0,
+              child:
+                  RihalBottomNavigation(
+                selectedIndex:
+                    1,
 
-                        _bottomItem(
-                          icon: Icons.home_rounded,
-                          label: 'الرئيسية',
-                          selected: true,
-                          onTap: () {},
-                        ),
-
-                        _bottomItem(
-                          icon:
-                              Icons.explore_outlined,
-                          label: 'استكشاف لحظي',
-                          selected: false,
-                          onTap: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const InstantExploreScreen()));
-                          },
-                        ),
-                      ],
+                onMyTrips: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const MyTripsScreen(),
                     ),
-                  ),
-                ),
+                  );
+                },
+
+                onHome: () {},
+
+                onExplore: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const InstantExploreScreen(),
+                    ),
+                  );
+                },
+
+                onProfile: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const ProfileScreen(),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -488,279 +1032,108 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  // ============================
-  // Marker المكان
-  // ============================
+  // ==========================================
+  // PLACE MARKER
+  // ==========================================
 
-  Widget _buildPlaceMarker(RihalPlace place) {
-    final bool isSelected =
+  Widget _buildPlaceMarker(
+    RihalPlace place,
+  ) {
+    final isSelected =
         selectedPlaces.any(
-      (item) => item.name == place.name,
+      (item) =>
+          item.name ==
+          place.name,
     );
 
-    Color markerColor;
+    final Color markerColor;
 
     if (place.category == 'دينية') {
-      markerColor = darkGreen;
-    } else if (place.category == 'متاحف') {
       markerColor =
-          const Color(0xFF75518A);
-    } else if (place.category == 'معالم') {
+          RihalStyle.darkGreen;
+    } else if (place.category ==
+        'تراثي') {
       markerColor =
-          const Color(0xFF9A6542);
+          RihalStyle.landmarkMarker;
+    } else if (place.category ==
+        'متاحف') {
+      markerColor =
+          RihalStyle.museumMarker;
+    } else if (place.category ==
+        'معالم') {
+      markerColor =
+          RihalStyle.landmarkMarker;
     } else {
-      markerColor = brown;
+      markerColor =
+          RihalStyle.brown;
     }
 
-    return GestureDetector(
+    return RihalExplorePlaceMarker(
+      name:
+          place.name,
+      icon:
+          place.icon,
+      color:
+          markerColor,
+      selected:
+          isSelected,
       onTap: () {
-        _showPlace(place);
+        _showPlace(
+          place,
+        );
       },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            constraints:
-                const BoxConstraints(
-              maxWidth: 145,
-            ),
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 9,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color:
-                  beige.withValues(alpha: 0.98),
-              borderRadius:
-                  BorderRadius.circular(20),
-              border: isSelected
-                  ? Border.all(
-                      color: darkGreen,
-                      width: 2,
-                    )
-                  : null,
-              boxShadow: [
-                BoxShadow(
-                  color:
-                      Colors.black.withValues(
-                    alpha: 0.16,
-                  ),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize:
-                  MainAxisSize.min,
-              children: [
-                Container(
-                  width: 31,
-                  height: 31,
-                  decoration: BoxDecoration(
-                    color: markerColor,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isSelected
-                        ? Icons.check_rounded
-                        : place.icon,
-                    size: 18,
-                    color: Colors.white,
-                  ),
-                ),
-
-                const SizedBox(width: 7),
-
-                Flexible(
-                  child: Text(
-                    place.name,
-                    maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(
-                      color:
-                          Color(0xFF40362F),
-                      fontSize: 12,
-                      fontWeight:
-                          FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          Icon(
-            Icons.location_on_rounded,
-            color: markerColor,
-            size: 27,
-          ),
-        ],
-      ),
     );
   }
 
-  // ============================
-  // كرت خطتي
-  // ============================
+  // ==========================================
+  // MY PLAN CARD
+  // ==========================================
 
   Widget _buildMyPlanCard() {
-    return InkWell(
-      onTap: _openTripPlan,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-      height: 86,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 11,
-      ),
-      decoration: BoxDecoration(
-        color:
-            beige.withValues(alpha: 0.98),
-        borderRadius:
-            BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color:
-                Colors.black.withValues(
-              alpha: 0.16,
-            ),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // أيقونات الأماكن المختارة
-          SizedBox(
-            width: 100,
-            child: Stack(
-              children: [
-                for (
-                  int i = 0;
-                  i <
-                      selectedPlaces.length
-                          .clamp(0, 3);
-                  i++
-                )
-                  Positioned(
-                    right: i * 27,
-                    top: 7,
-                    child: Container(
-                      width: 46,
-                      height: 46,
-                      decoration:
-                          BoxDecoration(
-                        color: darkGreen,
-                        borderRadius:
-                            BorderRadius
-                                .circular(14),
-                        border: Border.all(
-                          color: beige,
-                          width: 2,
-                        ),
-                      ),
-                      child: Icon(
-                        selectedPlaces[i]
-                            .icon,
-                        color: Colors.white,
-                        size: 23,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 8),
-
-          Expanded(
-            child: Column(
-              mainAxisAlignment:
-                  MainAxisAlignment.center,
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'خطتي (${selectedPlaces.length})',
-                  style:
-                      const TextStyle(
-                    color:
-                        Color(0xFF332A24),
-                    fontSize: 18,
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  selectedPlaces.length == 1
-                      ? 'مكان مختار'
-                      : 'أماكن مختارة',
-                  style:
-                      const TextStyle(
-                    color:
-                        Color(0xFF8A7D72),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: darkGreen
-                  .withValues(alpha: 0.10),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons
-                  .arrow_back_ios_new_rounded,
-              color: darkGreen,
-              size: 17,
-            ),
-          ),
-        ],
-      ),
-      ),
+    return RihalExplorePlanCard(
+      icons:
+          selectedPlaces.map(
+        (place) =>
+            place.icon,
+      ).toList(),
+      onTap:
+          _openTripPlan,
     );
   }
 
+  // ==========================================
+  // OPEN TRIP PLAN
+  // ==========================================
+
   void _openTripPlan() {
-    const requiredPlaces = {
-      'جبل أحد',
-      'متحف دار المدينة',
-      'مسجد قباء',
-      'جادة قباء',
-    };
-    final chosenNames = selectedPlaces.map((place) => place.name).toSet();
-    if (chosenNames.length != 4 || !chosenNames.containsAll(requiredPlaces)) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    if (selectedPlaces.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
         const SnackBar(
           content: Text(
-            'لخطة العرض اختاري الأماكن الأربعة: جبل أحد، متحف دار المدينة، مسجد قباء، جادة قباء',
-            textAlign: TextAlign.center,
+            'اختاري مكانًا واحدًا على الأقل لإضافته إلى خطتك',
+            textAlign:
+                TextAlign.center,
           ),
         ),
       );
+
       return;
     }
+
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const TripPlanScreen()),
+      MaterialPageRoute(
+        builder: (_) =>
+            const TripPlanScreen(),
+      ),
     );
   }
 
-  // ============================
-  // فتح تفاصيل المكان
-  // ============================
+  // ==========================================
+  // OPEN PLACE DETAILS
+  // ==========================================
 
   Future<void> _showPlace(
     RihalPlace place,
@@ -769,34 +1142,43 @@ class _ExploreScreenState extends State<ExploreScreen> {
         await Navigator.push<RihalPlace>(
       context,
       MaterialPageRoute(
-        builder: (context) =>
+        builder: (
+          context,
+        ) =>
             PlaceDetailsScreen(
-          place: place,
+          place:
+              place,
         ),
       ),
     );
 
+    if (!mounted) return;
+
     if (selectedPlace != null) {
-      _addPlaceToPlan(selectedPlace);
+      _addPlaceToPlan(
+        selectedPlace,
+      );
     }
   }
 
-  // ============================
-  // إضافة المكان إلى الخطة
-  // ============================
+  // ==========================================
+  // ADD PLACE TO PLAN
+  // ==========================================
 
   void _addPlaceToPlan(
     RihalPlace place,
   ) {
-    final bool alreadyAdded =
+    final alreadyAdded =
         selectedPlaces.any(
       (item) =>
-          item.name == place.name,
+          item.name ==
+          place.name,
     );
 
     if (alreadyAdded) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
         SnackBar(
           content: Text(
             '${place.name} موجود بالفعل في خطتك',
@@ -810,383 +1192,53 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
 
     setState(() {
-      selectedPlaces.add(place);
+      selectedPlaces.add(
+        place,
+      );
     });
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(
       SnackBar(
         content: Text(
           'تمت إضافة ${place.name} إلى خطتك',
-          textAlign: TextAlign.center,
+          textAlign:
+              TextAlign.center,
         ),
       ),
     );
   }
 
-  // ============================
-  // الفلاتر الرئيسية
-  // ============================
-
-  Widget _mainFilter(
-    String title,
-  ) {
-    final bool selected =
-        selectedMainFilter == title;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            selectedMainFilter =
-                title;
-            selectedCategory =
-                'الكل';
-          });
-        },
-        child: AnimatedContainer(
-          duration:
-              const Duration(
-            milliseconds: 180,
-          ),
-          alignment:
-              Alignment.center,
-          decoration: BoxDecoration(
-            color: selected
-                ? darkGreen
-                : Colors.transparent,
-            borderRadius:
-                BorderRadius.circular(21),
-          ),
-          child: Text(
-            title,
-            style: TextStyle(
-              color: selected
-                  ? Colors.white
-                  : const Color(
-                      0xFF554A41,
-                    ),
-              fontSize: 14,
-              fontWeight:
-                  FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================
-  // التصنيفات
-  // ============================
-
-  Widget _categoryButton({
-    required String title,
-    required IconData icon,
-  }) {
-    final bool selected =
-        selectedCategory == title;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          if (selectedCategory ==
-              title) {
-            selectedCategory =
-                'الكل';
-          } else {
-            selectedCategory =
-                title;
-          }
-
-          selectedMainFilter =
-              'الكل';
-        });
-      },
-      child: AnimatedContainer(
-        duration:
-            const Duration(
-          milliseconds: 180,
-        ),
-        width: 69,
-        margin:
-            const EdgeInsets.only(
-          left: 8,
-        ),
-        decoration: BoxDecoration(
-          color: selected
-              ? darkGreen
-              : beige.withValues(
-                  alpha: 0.97,
-                ),
-          borderRadius:
-              BorderRadius.circular(17),
-          boxShadow: [
-            BoxShadow(
-              color:
-                  Colors.black.withValues(
-                alpha: 0.09,
-              ),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment:
-              MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 23,
-              color: selected
-                  ? Colors.white
-                  : brown,
-            ),
-
-            const SizedBox(height: 4),
-
-            Text(
-              title,
-              style: TextStyle(
-                color: selected
-                    ? Colors.white
-                    : const Color(
-                        0xFF4D423A,
-                      ),
-                fontSize: 10.5,
-                fontWeight:
-                    FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ============================
-  // زر دائري علوي
-  // ============================
-
-  Widget _circleButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 51,
-        height: 51,
-        decoration: BoxDecoration(
-          color: beige.withValues(
-            alpha: 0.98,
-          ),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color:
-                  Colors.black.withValues(
-                alpha: 0.12,
-              ),
-              blurRadius: 10,
-            ),
-          ],
-        ),
-        child: Icon(
-          icon,
-          color: darkGreen,
-          size: 27,
-        ),
-      ),
-    );
-  }
-
-  // ============================
-  // أزرار الخريطة
-  // ============================
-
-  Widget _mapActionButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 49,
-        height: 49,
-        decoration: BoxDecoration(
-          color: beige,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color:
-                  Colors.black.withValues(
-                alpha: 0.14,
-              ),
-              blurRadius: 9,
-            ),
-          ],
-        ),
-        child: Icon(
-          icon,
-          color: darkGreen,
-          size: 25,
-        ),
-      ),
-    );
-  }
-
-  // ============================
-  // Bottom Navigation
-  // ============================
-
-  Widget _bottomItem({
-    required IconData icon,
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior:
-          HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 105,
-        child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 27,
-              color: selected
-                  ? darkGreen
-                  : const Color(
-                      0xFF5B4C41,
-                    ),
-            ),
-
-            const SizedBox(height: 4),
-
-            Text(
-              label,
-              maxLines: 1,
-              style: TextStyle(
-                color: selected
-                    ? darkGreen
-                    : const Color(
-                        0xFF5B4C41,
-                      ),
-                fontSize: 11.5,
-                fontWeight: selected
-                    ? FontWeight.bold
-                    : FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ============================
-  // خيارات الخريطة
-  // ============================
+  // ==========================================
+  // MAP OPTIONS
+  // ==========================================
 
   void _showMapOptions() {
     showModalBottomSheet(
-      context: context,
+      context:
+          context,
       backgroundColor:
           Colors.transparent,
-      builder: (context) {
-        return Directionality(
-          textDirection:
-              TextDirection.rtl,
-          child: Container(
-            margin:
-                const EdgeInsets.all(14),
-            padding:
-                const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: beige,
-              borderRadius:
-                  BorderRadius.circular(28),
-            ),
-            child: SafeArea(
-              top: false,
-              child: Column(
-                mainAxisSize:
-                    MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 45,
-                    height: 4,
-                    decoration:
-                        BoxDecoration(
-                      color:
-                          const Color(
-                        0xFFD1C5B8,
-                      ),
-                      borderRadius:
-                          BorderRadius
-                              .circular(10),
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: 18,
-                  ),
-
-                  const Text(
-                    'عرض الخريطة',
-                    style: TextStyle(
-                      color:
-                          Color(
-                        0xFF40362F,
-                      ),
-                      fontSize: 18,
-                      fontWeight:
-                          FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: 15,
-                  ),
-
-                  const Text(
-                    'سنضيف أنماط عرض إضافية للخريطة لاحقاً',
-                    textAlign:
-                        TextAlign.center,
-                    style: TextStyle(
-                      color:
-                          Color(
-                        0xFF8C8178,
-                      ),
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+      builder: (_) =>
+          const RihalExploreMapOptionsSheet(),
     );
   }
 }
 
-// ============================
-// بيانات المكان
-// ============================
+// ==========================================
+// PLACE MODEL
+// ==========================================
 
 class RihalPlace {
   final String name;
+
   final String category;
+
   final LatLng location;
+
   final IconData icon;
 
-  // صورة المكان اختيارية
   final String? imagePath;
 
   const RihalPlace({

@@ -1,6 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+
+import '../localization/rihal_localized_text.dart';
+import '../localization/locale_controller.dart';
+import '../rihal_style.dart';
+
 import 'signup_screen.dart';
-import 'trip_setup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,11 +22,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscurePassword = true;
 
-  String selectedLanguage = 'العربية';
-
-  final Color darkGreen = const Color(0xFF30452D);
-  final Color brown = const Color(0xFF6B4423);
-
   @override
   void dispose() {
     _usernameController.dispose();
@@ -33,236 +32,494 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection:
+          RihalTranslations.direction(context),
+
       child: Scaffold(
+        backgroundColor:
+            RihalStyle.background,
+
         body: Stack(
           fit: StackFit.expand,
+
           children: [
-            // خلفية رِحال
             Image.asset(
               'assets/images/2.jpg',
               fit: BoxFit.cover,
+
+              errorBuilder:
+                  (_, __, ___) =>
+                      Container(
+                color:
+                    RihalStyle.background,
+              ),
+            ),
+
+            Container(
+              color:
+                  RihalStyle.background
+                      .withValues(
+                alpha: 0.90,
+              ),
             ),
 
             SafeArea(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
+                physics:
+                    const BouncingScrollPhysics(),
+
+                padding:
+                    const EdgeInsets.fromLTRB(
+                  RihalStyle
+                      .pageHorizontalPadding,
+                  12,
+                  RihalStyle
+                      .pageHorizontalPadding,
+                  24,
                 ),
+
                 child: Column(
                   children: [
-                    const SizedBox(height: 15),
-
-                    // ==========================
-                    // اختيار اللغة
-                    // ==========================
-
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: PopupMenuButton<String>(
-                        onSelected: (value) {
-                          setState(() {
-                            selectedLanguage = value;
-                          });
-                        },
-                        color: const Color(0xFFF9F1E5),
-                        elevation: 5,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(
-                            value: 'العربية',
-                            child: Text('🇸🇦  العربية'),
-                          ),
-                          PopupMenuItem(
-                            value: 'English',
-                            child: Text('🇬🇧  English'),
-                          ),
-                          PopupMenuItem(
-                            value: 'Urdu',
-                            child: Text('🇵🇰  Urdu'),
-                          ),
-                          PopupMenuItem(
-                            value: 'Türkçe',
-                            child: Text('🇹🇷  Türkçe'),
-                          ),
-                        ],
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(
-                              alpha: 0.50,
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: brown.withValues(
-                                alpha: 0.10,
-                              ),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.language_rounded,
-                                size: 16,
-                                color: brown,
-                              ),
-
-                              const SizedBox(width: 5),
-
-                              Text(
-                                selectedLanguage,
-                                style: TextStyle(
-                                  color: darkGreen,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-
-                              const SizedBox(width: 2),
-
-                              Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                size: 16,
-                                color: brown,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    // ==========================
-                    // لوقو رِحال
-                    // ==========================
-
-                    Image.asset(
-                      'assets/images/1.png',
-                      width: 250,
-                      fit: BoxFit.contain,
-                    ),
-
-                    const SizedBox(height: 55),
-
-                    // ==========================
-                    // اسم المستخدم
-                    // ==========================
-
-                    _buildTextField(
-                      controller: _usernameController,
-                      hint: 'اسم المستخدم',
-                      icon: Icons.person_outline_rounded,
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // ==========================
-                    // كلمة المرور
-                    // ==========================
-
-                    _buildTextField(
-                      controller: _passwordController,
-                      hint: 'كلمة المرور',
-                      icon: Icons.lock_outline_rounded,
-                      isPassword: true,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // ==========================
-                    // تسجيل الدخول
-                    // ==========================
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 62,
-                      child: ElevatedButton(
-                        onPressed: _login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: darkGreen,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                        ),
-                        child: const Text(
-                          'تسجيل الدخول',
-                          style: TextStyle(
-                            fontSize: 21,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 22),
-
-                    // ==========================
-                    // نسيت كلمة المرور
-                    // ==========================
-
-                    TextButton(
-                      onPressed: () {
-                        // نربطها لاحقاً باستعادة كلمة المرور
-                      },
-                      child: Text(
-                        'نسيت كلمة المرور؟',
-                        style: TextStyle(
-                          color: brown,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // ==========================
-                    // إنشاء حساب
-                    // ==========================
-
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'ليس لديك حساب؟ ',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF4B3A2B),
+                        Expanded(
+                          child: Align(
+                            alignment:
+                                AlignmentDirectional
+                                    .centerStart,
+
+                            child:
+                                RihalLanguageSelector(
+                              currentCode:
+                                  LocaleScope.of(
+                                context,
+                              )
+                                      .locale
+                                      .languageCode,
+
+                              languages: const [
+                                RihalLanguageOption(
+                                  'ar',
+                                  'العربية',
+                                  '🇸🇦',
+                                ),
+                                RihalLanguageOption(
+                                  'en',
+                                  'English',
+                                  '🇬🇧',
+                                ),
+                                RihalLanguageOption(
+                                  'tr',
+                                  'Türkçe',
+                                  '🇹🇷',
+                                ),
+                                RihalLanguageOption(
+                                  'ur',
+                                  'اردو',
+                                  '🇵🇰',
+                                ),
+                              ],
+
+                              onChanged:
+                                  (code) {
+                                LocaleScope.of(
+                                  context,
+                                ).setLocale(
+                                  Locale(code),
+                                );
+                              },
+                            ),
                           ),
                         ),
 
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const SignupScreen(),
-                              ),
-                            );
-                          },
-                          child: Text(
-                            'إنشاء حساب',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: darkGreen,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        IconButton(
+                          tooltip:
+                              RihalTranslations.tr(
+                            context,
+                            'رجوع',
+                          ),
+
+                          onPressed:
+                              () =>
+                                  Navigator.pop(
+                            context,
+                          ),
+
+                          icon:
+                              const Icon(
+                            Icons
+                                .arrow_forward_ios_rounded,
+                            color:
+                                RihalStyle
+                                    .darkGreen,
+                            size: 20,
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 35),
+                    const SizedBox(
+                      height: 10,
+                    ),
+
+                    Image.asset(
+                      'assets/images/1.png',
+                      width: 150,
+                      height: 105,
+                      fit: BoxFit.contain,
+
+                      errorBuilder:
+                          (_, __, ___) =>
+                              const Icon(
+                        Icons
+                            .explore_rounded,
+                        color:
+                            RihalStyle
+                                .darkGreen,
+                        size: 66,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 6,
+                    ),
+
+                    const Text(
+                      'مرحبًا بعودتك',
+                      textAlign:
+                          TextAlign.center,
+                      style: TextStyle(
+                        color:
+                            RihalStyle
+                                .deepGreen,
+                        fontSize: 26,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 6,
+                    ),
+
+                    const Text(
+                      'سجّلي الدخول وكمّلي رحلتك مع رِحال',
+                      textAlign:
+                          TextAlign.center,
+                      style: TextStyle(
+                        color:
+                            RihalStyle
+                                .secondaryText,
+                        fontSize: 13.5,
+                        height: 1.5,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 24,
+                    ),
+
+                    RihalCard(
+                      padding:
+                          const EdgeInsets
+                              .fromLTRB(
+                        18,
+                        22,
+                        18,
+                        20,
+                      ),
+
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start,
+
+                        children: [
+                          const Text(
+                            'تسجيل الدخول',
+                            style: TextStyle(
+                              color:
+                                  RihalStyle
+                                      .deepGreen,
+                              fontSize: 20,
+                              fontWeight:
+                                  FontWeight
+                                      .bold,
+                            ),
+                          ),
+
+                          const SizedBox(
+                            height: 5,
+                          ),
+
+                          const Text(
+                            'أدخلي بيانات حسابك للمتابعة',
+                            style: TextStyle(
+                              color:
+                                  RihalStyle
+                                      .secondaryText,
+                              fontSize: 12,
+                            ),
+                          ),
+
+                          const SizedBox(
+                            height: 20,
+                          ),
+
+                          _fieldLabel(
+                            'اسم المستخدم',
+                          ),
+
+                          const SizedBox(
+                            height: 7,
+                          ),
+
+                          _buildTextField(
+                            controller:
+                                _usernameController,
+
+                            hint:
+                                'أدخلي اسم المستخدم',
+
+                            icon: Icons
+                                .person_outline_rounded,
+
+                            keyboardType:
+                                TextInputType
+                                    .text,
+                          ),
+
+                          const SizedBox(
+                            height: 16,
+                          ),
+
+                          _fieldLabel(
+                            'كلمة المرور',
+                          ),
+
+                          const SizedBox(
+                            height: 7,
+                          ),
+
+                          _buildTextField(
+                            controller:
+                                _passwordController,
+
+                            hint:
+                                'أدخلي كلمة المرور',
+
+                            icon: Icons
+                                .lock_outline_rounded,
+
+                            isPassword: true,
+                          ),
+
+                          const SizedBox(
+                            height: 8,
+                          ),
+
+                          Align(
+                            alignment:
+                                AlignmentDirectional
+                                    .centerEnd,
+
+                            child: TextButton(
+                              onPressed: () {},
+
+                              style:
+                                  TextButton
+                                      .styleFrom(
+                                foregroundColor:
+                                    RihalStyle
+                                        .brown,
+
+                                padding:
+                                    const EdgeInsets
+                                        .symmetric(
+                                  horizontal:
+                                      3,
+                                  vertical:
+                                      6,
+                                ),
+                              ),
+
+                              child:
+                                  const Text(
+                                'نسيت كلمة المرور؟',
+                                style:
+                                    TextStyle(
+                                  fontSize:
+                                      12.5,
+                                  fontWeight:
+                                      FontWeight
+                                          .w600,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(
+                            height: 8,
+                          ),
+
+                          SizedBox(
+                            width:
+                                double.infinity,
+                            height:
+                                RihalStyle
+                                    .primaryButtonHeight,
+
+                            child:
+                                ElevatedButton
+                                    .icon(
+                              onPressed:
+                                  _login,
+
+                              style:
+                                  RihalStyle
+                                      .primaryButtonStyle(),
+
+                              icon:
+                                  const Icon(
+                                Icons
+                                    .login_rounded,
+                                size: 20,
+                              ),
+
+                              label:
+                                  const Text(
+                                'تسجيل الدخول',
+                                style:
+                                    TextStyle(
+                                  fontSize:
+                                      RihalStyle
+                                          .primaryButtonTextSize,
+                                  fontWeight:
+                                      FontWeight
+                                          .bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 18,
+                    ),
+
+                    Container(
+                      width:
+                          double.infinity,
+
+                      padding:
+                          const EdgeInsets
+                              .symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+
+                      decoration:
+                          BoxDecoration(
+                        color:
+                            RihalStyle
+                                .cardBackground,
+
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                          18,
+                        ),
+
+                        border:
+                            Border.all(
+                          color:
+                              RihalStyle
+                                  .cardBorder,
+                        ),
+                      ),
+
+                      child: Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment
+                                .center,
+
+                        children: [
+                          const Text(
+                            'ليس لديك حساب؟',
+                            style:
+                                TextStyle(
+                              color:
+                                  RihalStyle
+                                      .secondaryText,
+                              fontSize: 13,
+                            ),
+                          ),
+
+                          const SizedBox(
+                            width: 5,
+                          ),
+
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) =>
+                                          const SignupScreen(),
+                                ),
+                              );
+                            },
+
+                            style:
+                                TextButton
+                                    .styleFrom(
+                              foregroundColor:
+                                  RihalStyle
+                                      .darkGreen,
+
+                              padding:
+                                  const EdgeInsets
+                                      .symmetric(
+                                horizontal: 5,
+                                vertical: 4,
+                              ),
+                            ),
+
+                            child:
+                                const Text(
+                              'إنشاء حساب',
+                              style:
+                                  TextStyle(
+                                fontSize: 13,
+                                fontWeight:
+                                    FontWeight
+                                        .bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 8,
+                    ),
+
+                    const Text(
+                      'رِحال — رحلتك على طريقتك',
+                      textAlign:
+                          TextAlign.center,
+                      style: TextStyle(
+                        color:
+                            RihalStyle
+                                .secondaryText,
+                        fontSize: 11,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -273,90 +530,180 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // ==========================
-  // تصميم حقول الإدخال
-  // ==========================
+  Widget _fieldLabel(
+    String text,
+  ) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color:
+            RihalStyle.deepGreen,
+        fontSize: 12.5,
+        fontWeight:
+            FontWeight.w700,
+      ),
+    );
+  }
 
   Widget _buildTextField({
-    required TextEditingController controller,
+    required TextEditingController
+        controller,
     required String hint,
     required IconData icon,
+    TextInputType? keyboardType,
     bool isPassword = false,
   }) {
     return Container(
-      height: 70,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: brown.withValues(alpha: 0.25),
-          width: 1,
-        ),
+      height: 54,
+
+      decoration:
+          RihalStyle.fieldDecoration(
+        radius:
+            RihalStyle.fieldRadius,
       ),
+
       child: TextField(
         controller: controller,
+
         obscureText:
-            isPassword ? _obscurePassword : false,
-        textAlign: TextAlign.right,
+            isPassword &&
+                _obscurePassword,
+
+        keyboardType:
+            keyboardType,
+
+        textInputAction:
+            isPassword
+                ? TextInputAction.done
+                : TextInputAction.next,
+
+        onSubmitted:
+            isPassword
+                ? (_) => _login()
+                : null,
+
+        textAlign:
+            TextAlign.start,
+
         style: const TextStyle(
-          fontSize: 17,
-          color: Color(0xFF3C342C),
+          color:
+              RihalStyle.deepGreen,
+          fontSize: 14,
+          fontWeight:
+              FontWeight.w500,
         ),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(
-            color: Color(0xFF8B8178),
-            fontSize: 17,
+
+        decoration:
+            InputDecoration(
+          hintText:
+              RihalTranslations.tr(
+            context,
+            hint,
           ),
+
+          hintStyle:
+              const TextStyle(
+            color:
+                RihalStyle.searchHint,
+            fontSize: 13,
+          ),
+
           prefixIcon: Icon(
             icon,
-            color: brown,
-            size: 28,
+            color:
+                RihalStyle.brown,
+            size: 21,
           ),
-          suffixIcon: isPassword
-              ? IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword =
-                          !_obscurePassword;
-                    });
-                  },
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                    color: brown,
-                  ),
-                )
-              : null,
-          border: InputBorder.none,
+
+          suffixIcon:
+              isPassword
+                  ? IconButton(
+                      tooltip:
+                          RihalTranslations
+                              .tr(
+                        context,
+                        _obscurePassword
+                            ? 'إظهار كلمة المرور'
+                            : 'إخفاء كلمة المرور',
+                      ),
+
+                      onPressed:
+                          () {
+                        setState(
+                          () {
+                            _obscurePassword =
+                                !_obscurePassword;
+                          },
+                        );
+                      },
+
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons
+                                .visibility_outlined
+                            : Icons
+                                .visibility_off_outlined,
+
+                        color:
+                            RihalStyle
+                                .brown,
+
+                        size: 21,
+                      ),
+                    )
+                  : null,
+
+          border:
+              InputBorder.none,
+
           contentPadding:
-              const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 23,
+              const EdgeInsets
+                  .symmetric(
+            horizontal: 14,
+            vertical: 16,
           ),
         ),
       ),
     );
   }
 
-  // ==========================
-  // تسجيل الدخول
-  // ==========================
-
   void _login() {
     final username =
-        _usernameController.text.trim();
+        _usernameController
+            .text
+            .trim();
 
     final password =
-        _passwordController.text.trim();
+        _passwordController
+            .text
+            .trim();
 
-    if (username.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
+    if (username.isEmpty ||
+        password.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+        SnackBar(
+          backgroundColor:
+              RihalStyle.darkGreen,
+
+          behavior:
+              SnackBarBehavior
+                  .floating,
+
+          shape:
+              RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius
+                    .circular(
+              14,
+            ),
+          ),
+
+          content: const Text(
             'الرجاء إدخال اسم المستخدم وكلمة المرور',
-            textAlign: TextAlign.center,
+            textAlign:
+                TextAlign.center,
           ),
         ),
       );
@@ -364,12 +711,45 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    Navigator.pushReplacement(
+    ScaffoldMessenger.of(
       context,
-      MaterialPageRoute(
-        builder: (context) =>
-            const TripSetupScreen(),
+    ).showSnackBar(
+      SnackBar(
+        backgroundColor:
+            RihalStyle.darkGreen,
+
+        behavior:
+            SnackBarBehavior
+                .floating,
+
+        shape:
+            RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius
+                  .circular(
+            14,
+          ),
+        ),
+
+        content: const Text(
+          'تم تسجيل الدخول بنجاح',
+          textAlign:
+              TextAlign.center,
+        ),
       ),
+    );
+
+    Future.delayed(
+      const Duration(
+        milliseconds: 500,
+      ),
+      () {
+        if (!mounted) return;
+
+        Navigator.pop(
+          context,
+        );
+      },
     );
   }
 }
