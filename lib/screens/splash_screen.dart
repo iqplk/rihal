@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart' hide Text;
-import '../localization/rihal_localized_text.dart';
 
+import '../localization/rihal_localized_text.dart';
 import '../rihal_style.dart';
-import 'login_screen.dart';
+
+import 'trip_setup_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -83,10 +84,19 @@ class _SplashScreenState extends State<SplashScreen>
             transitionDuration:
                 const Duration(milliseconds: 650),
             pageBuilder:
-                (context, animation, secondaryAnimation) =>
-                    const LoginScreen(),
+                (
+                  context,
+                  animation,
+                  secondaryAnimation,
+                ) =>
+                    const TripSetupScreen(),
             transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
+                (
+                  context,
+                  animation,
+                  secondaryAnimation,
+                  child,
+                ) {
               final curved = CurvedAnimation(
                 parent: animation,
                 curve: Curves.easeOutCubic,
@@ -308,14 +318,20 @@ class _LoadingDotsState extends State<_LoadingDots>
           children: List.generate(
             3,
             (index) {
-              final phase = (_controller.value + index * 0.22) % 1.0;
+              final phase =
+                  (_controller.value + index * 0.22) % 1.0;
+
               final opacity =
-                  0.30 + (1 - (phase - 0.5).abs() * 2) * 0.70;
+                  0.30 +
+                  (1 - (phase - 0.5).abs() * 2) * 0.70;
+
               final scale =
-                  0.78 + (1 - (phase - 0.5).abs() * 2) * 0.22;
+                  0.78 +
+                  (1 - (phase - 0.5).abs() * 2) * 0.22;
 
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4),
                 child: Transform.scale(
                   scale: scale,
                   child: Opacity(

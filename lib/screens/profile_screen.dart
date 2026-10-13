@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart' hide Text;
-import '../localization/rihal_localized_text.dart';
 
+import '../localization/rihal_localized_text.dart';
 import '../rihal_style.dart';
+
 import 'instant_explore_screen.dart';
 import 'explore_screen.dart';
 import 'my_trips_screen.dart';
 import 'profile_settings_screen.dart';
+import 'login_screen.dart';
+import 'signup_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -16,11 +19,13 @@ class ProfileScreen extends StatelessWidget {
       textDirection: RihalTranslations.direction(context),
       child: Scaffold(
         backgroundColor: RihalStyle.background,
+
         appBar: AppBar(
           elevation: 0,
           surfaceTintColor: Colors.transparent,
           backgroundColor: RihalStyle.background,
           centerTitle: true,
+
           leading: IconButton(
             onPressed: () => Navigator.pop(context),
             icon: const Icon(
@@ -28,6 +33,7 @@ class ProfileScreen extends StatelessWidget {
               color: RihalStyle.darkGreen,
             ),
           ),
+
           title: const Text(
             'الحساب',
             style: TextStyle(
@@ -37,11 +43,16 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
         ),
+
         body: SafeArea(
           child: ListView(
             padding: RihalStyle.pagePadding,
             physics: const BouncingScrollPhysics(),
+
             children: [
+              // =========================================================
+              // Guest Account Card
+              // =========================================================
               RihalCard(
                 child: Column(
                   children: [
@@ -62,39 +73,106 @@ class ProfileScreen extends StatelessWidget {
                         size: 50,
                       ),
                     ),
+
                     const SizedBox(height: 12),
+
                     const Text(
-                      'تيم رحال',
+                      'مرحبًا بك في رِحال',
                       style: TextStyle(
                         color: RihalStyle.deepGreen,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
                     const SizedBox(height: 5),
+
                     const Text(
-                      'rihal@example.com',
+                      'تستخدم التطبيق كزائر',
                       style: RihalStyle.cardCaption,
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // تسجيل الدخول
+                    SizedBox(
+                      width: double.infinity,
+                      height: RihalStyle.primaryButtonHeight,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LoginScreen(),
+                            ),
+                          );
+                        },
+                        style: RihalStyle.primaryButtonStyle(),
+                        icon: const Icon(
+                          Icons.login_rounded,
+                          size: 20,
+                        ),
+                        label: const Text(
+                          'تسجيل الدخول',
+                          style: TextStyle(
+                            fontSize: RihalStyle.primaryButtonTextSize,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // إنشاء حساب
+                    SizedBox(
+                      width: double.infinity,
+                      height: RihalStyle.primaryButtonHeight,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SignupScreen(),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: RihalStyle.darkGreen,
+                          side: const BorderSide(
+                            color: RihalStyle.darkGreen,
+                          ),
+                          backgroundColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        icon: const Icon(
+                          Icons.person_add_alt_1_rounded,
+                          size: 20,
+                        ),
+                        label: const Text(
+                          'إنشاء حساب',
+                          style: TextStyle(
+                            fontSize: RihalStyle.primaryButtonTextSize,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
+
               const SizedBox(height: RihalStyle.spaceLg),
 
+              // =========================================================
+              // Settings
+              // =========================================================
               RihalCard(
                 padding: EdgeInsets.zero,
                 child: Column(
                   children: [
-                    _ProfileItem(
-                      icon: Icons.person_outline_rounded,
-                      title: 'تعديل الملف الشخصي',
-                      subtitle: 'الاسم والبريد الإلكتروني وبيانات الحساب',
-                      onTap: () => _open(
-                        context,
-                        const ProfileSettingsScreen(),
-                      ),
-                    ),
-                    const _ProfileDivider(),
                     _ProfileItem(
                       icon: Icons.notifications_none_rounded,
                       title: 'الإشعارات',
@@ -104,21 +182,26 @@ class ProfileScreen extends StatelessWidget {
                         const NotificationsSettingsScreen(),
                       ),
                     ),
+
                     const _ProfileDivider(),
+
                     _ProfileItem(
                       icon: Icons.language_rounded,
                       title: 'اللغة',
-                      subtitle: RihalTranslations.currentLanguageLabel(context),
+                      subtitle:
+                          RihalTranslations.currentLanguageLabel(context),
                       onTap: () => _open(
                         context,
                         const LanguageSettingsScreen(),
                       ),
                     ),
+
                     const _ProfileDivider(),
+
                     _ProfileItem(
                       icon: Icons.lock_outline_rounded,
                       title: 'الخصوصية والأمان',
-                      subtitle: 'كلمة المرور وخصوصية الحساب',
+                      subtitle: 'الخصوصية وإعدادات التطبيق',
                       onTap: () => _open(
                         context,
                         const PrivacySettingsScreen(),
@@ -130,6 +213,9 @@ class ProfileScreen extends StatelessWidget {
 
               const SizedBox(height: RihalStyle.spaceLg),
 
+              // =========================================================
+              // Support
+              // =========================================================
               RihalCard(
                 padding: EdgeInsets.zero,
                 child: Column(
@@ -143,7 +229,9 @@ class ProfileScreen extends StatelessWidget {
                         const HelpSupportScreen(),
                       ),
                     ),
+
                     const _ProfileDivider(),
+
                     _ProfileItem(
                       icon: Icons.info_outline_rounded,
                       title: 'عن رِحال',
@@ -161,6 +249,10 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
         ),
+
+        // =============================================================
+        // Bottom Navigation
+        // =============================================================
         bottomNavigationBar: RihalBottomNavigation(
           selectedIndex: 3,
 
@@ -197,13 +289,22 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  static void _open(BuildContext context, Widget screen) {
+  static void _open(
+    BuildContext context,
+    Widget screen,
+  ) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => screen),
+      MaterialPageRoute(
+        builder: (_) => screen,
+      ),
     );
   }
 }
+
+// =====================================================================
+// Profile Item
+// =====================================================================
 
 class _ProfileItem extends StatelessWidget {
   const _ProfileItem({
@@ -222,32 +323,41 @@ class _ProfileItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
+
       child: InkWell(
         onTap: onTap,
+
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: 15,
             vertical: 14,
           ),
+
           child: Row(
             children: [
               Container(
                 width: 42,
                 height: 42,
+
                 decoration: BoxDecoration(
                   color: RihalStyle.cardBackgroundLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
+
                 child: Icon(
                   icon,
                   color: RihalStyle.darkGreen,
                   size: 21,
                 ),
               ),
+
               const SizedBox(width: 12),
+
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+
                   children: [
                     Text(
                       title,
@@ -257,7 +367,9 @@ class _ProfileItem extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
                     const SizedBox(height: 3),
+
                     Text(
                       subtitle,
                       style: const TextStyle(
@@ -268,6 +380,7 @@ class _ProfileItem extends StatelessWidget {
                   ],
                 ),
               ),
+
               const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 color: RihalStyle.brown,
@@ -280,6 +393,10 @@ class _ProfileItem extends StatelessWidget {
     );
   }
 }
+
+// =====================================================================
+// Divider
+// =====================================================================
 
 class _ProfileDivider extends StatelessWidget {
   const _ProfileDivider();

@@ -5,14 +5,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'l10n/app_localizations.dart';
 import 'localization/locale_controller.dart';
 import 'rihal_style.dart';
+
 import 'screens/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final preferences = await SharedPreferences.getInstance();
-  final localeController = LocaleController(preferences)
-    ..loadSavedLocale();
+  final preferences =
+      await SharedPreferences.getInstance();
+
+  final localeController =
+      LocaleController(preferences)
+        ..loadSavedLocale();
 
   runApp(
     RihalApp(
@@ -40,27 +44,35 @@ class RihalApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             title: 'Rihal',
             theme: RihalStyle.theme,
+
             locale: localeController.locale,
-            supportedLocales: AppLocalizations.supportedLocales,
+
+            supportedLocales:
+                AppLocalizations.supportedLocales,
+
             localizationsDelegates: const [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            localeResolutionCallback: (deviceLocale, supportedLocales) {
+
+            localeResolutionCallback:
+                (deviceLocale, supportedLocales) {
               if (deviceLocale == null) {
                 return localeController.locale;
               }
 
               for (final locale in supportedLocales) {
-                if (locale.languageCode == deviceLocale.languageCode) {
+                if (locale.languageCode ==
+                    deviceLocale.languageCode) {
                   return locale;
                 }
               }
 
               return const Locale('ar');
             },
+
             home: const SplashScreen(),
           );
         },
