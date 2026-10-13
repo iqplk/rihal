@@ -1,22 +1,33 @@
 from datetime import datetime
+
+
 from typing import Literal
+
+
 import os
 
+import json
+
+
 import firebase_admin
+
 
 from fastapi import (
     FastAPI,
     HTTPException,
 )
 
+
 from fastapi.middleware.cors import (
     CORSMiddleware,
 )
+
 
 from firebase_admin import (
     credentials,
     firestore,
 )
+
 
 from pydantic import (
     BaseModel,
@@ -29,25 +40,34 @@ from rahhal_rules_dynamic import (
     recommend_and_plan,
 )
 
+
 from llm.plan_explainer import (
     explain_plan,
 )
+
 
 from llm.discover_explainer import (
     explain_discover_now,
 )
 
+
 from services.discover_now_service import (
     discover_now,
 )
+
 
 from services.shade_route_service import (
     calculate_shade_route,
 )
 
 # ============================================================
+
+
 # FastAPI
+
+
 # ============================================================
+
 
 app = FastAPI(
     title="Rihal API",
@@ -56,23 +76,41 @@ app = FastAPI(
 
 
 # ============================================================
+
+
 # CORS
+
+
 # ============================================================
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[
+        "https://rihal-fc413.web.app",
+        "https://rihal-fc413.firebaseapp.com",
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8080",
+    ],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
 # ============================================================
+
+
 # Firebase
+
+
 # ============================================================
 
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 FIREBASE_KEY_PATH = os.path.join(
     BASE_DIR,
@@ -82,7 +120,15 @@ FIREBASE_KEY_PATH = os.path.join(
 
 if not firebase_admin._apps:
 
-    cred = credentials.Certificate(FIREBASE_KEY_PATH)
+    firebase_credentials_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
+
+    if firebase_credentials_json:
+
+        cred = credentials.Certificate(json.loads(firebase_credentials_json))
+
+    else:
+
+        cred = credentials.Certificate(FIREBASE_KEY_PATH)
 
     firebase_admin.initialize_app(cred)
 
@@ -91,12 +137,18 @@ db = firestore.client()
 
 
 # ============================================================
+
+
 # Models
+
+
 # ============================================================
 
 
 class UserLocation(BaseModel):
+
     lat: float
+
     lng: float
 
 
@@ -139,9 +191,13 @@ class DiscoverNowRequest(BaseModel):
         ge=1,
         le=20,
     )
+
     category: Literal["all", "cafes", "markets"] | None = None
+
     next_destination: UserLocation | None = None
+
     departure_datetime: datetime | None = None
+
     next_activity_start: datetime | None = None
 
 
@@ -155,7 +211,11 @@ class ShadeRouteRequest(BaseModel):
 
 
 # ============================================================
+
+
 # Home
+
+
 # ============================================================
 
 
@@ -166,7 +226,11 @@ def home():
 
 
 # ============================================================
+
+
 # Firebase Test
+
+
 # ============================================================
 
 
@@ -180,7 +244,11 @@ def firebase_test():
 
 
 # ============================================================
+
+
 # Places
+
+
 # ============================================================
 
 
@@ -209,7 +277,11 @@ def get_places():
 
 
 # ============================================================
+
+
 # Planner
+
+
 # ============================================================
 
 
@@ -219,7 +291,9 @@ def create_plan(request: PlannerRequest):
     try:
 
         # ----------------------------------------------------
+
         # Validate dates
+
         # ----------------------------------------------------
 
         if request.end_datetime <= request.start_datetime:
@@ -230,7 +304,9 @@ def create_plan(request: PlannerRequest):
             )
 
         # ----------------------------------------------------
+
         # Validate transport
+
         # ----------------------------------------------------
 
         allowed_transport_modes = {
@@ -247,7 +323,9 @@ def create_plan(request: PlannerRequest):
             )
 
         # ----------------------------------------------------
+
         # Firebase places
+
         # ----------------------------------------------------
 
         places = load_places_from_firestore(db)
@@ -260,7 +338,9 @@ def create_plan(request: PlannerRequest):
             )
 
         # ----------------------------------------------------
+
         # User location
+
         # ----------------------------------------------------
 
         user_coordinates = (
@@ -269,7 +349,9 @@ def create_plan(request: PlannerRequest):
         )
 
         # ----------------------------------------------------
+
         # Planner
+
         # ----------------------------------------------------
 
         planner_result = recommend_and_plan(
@@ -290,23 +372,33 @@ def create_plan(request: PlannerRequest):
         )
 
         # ----------------------------------------------------
+
         # LLM explanation
+
         # ----------------------------------------------------
 
         try:
+
             explanation = explain_plan(planner_result)
+
         except Exception:
+
             # A narrative outage must not discard an otherwise valid schedule.
+
             explanation = ""
 
         # ----------------------------------------------------
+
         # Response
+
         # ----------------------------------------------------
 
         return {
             "success": True,
             "plan": planner_result.get("plan", {}),
-            "planning_dates": planner_result.get("planning_dates", list(planner_result.get("plan", {}))),
+            "planning_dates": planner_result.get(
+                "planning_dates", list(planner_result.get("plan", {}))
+            ),
             "free_time_gaps": planner_result.get("free_time_gaps", {}),
             "explanation": explanation,
             "scheduled_place_ids": planner_result.get("scheduled_place_ids", []),
@@ -327,7 +419,11 @@ def create_plan(request: PlannerRequest):
 
 
 # ============================================================
+
+
 # Discover Now
+
+
 # ============================================================
 
 
@@ -337,7 +433,9 @@ def discover_now_endpoint(request: DiscoverNowRequest):
     try:
 
         # ----------------------------------------------------
+
         # Validate transport
+
         # ----------------------------------------------------
 
         allowed_transport_modes = {
@@ -354,13 +452,19 @@ def discover_now_endpoint(request: DiscoverNowRequest):
             )
 
         # ----------------------------------------------------
+
         # Discover
+
         # ----------------------------------------------------
 
         if request.next_activity_start is not None and (
             request.next_destination is None or request.departure_datetime is None
         ):
-            raise HTTPException(status_code=400, detail="Next activity requires destination and departure time")
+
+            raise HTTPException(
+                status_code=400,
+                detail="Next activity requires destination and departure time",
+            )
 
         result = discover_now(
             latitude=(request.user_location.lat),
@@ -372,27 +476,38 @@ def discover_now_endpoint(request: DiscoverNowRequest):
             category_filter=request.category,
             next_destination=(
                 (request.next_destination.lat, request.next_destination.lng)
-                if request.next_destination is not None else None
+                if request.next_destination is not None
+                else None
             ),
             departure_datetime=request.departure_datetime,
             next_activity_start=request.next_activity_start,
         )
 
         # ----------------------------------------------------
+
         # LLM explanation
+
         # ----------------------------------------------------
 
         try:
+
             explanation = explain_discover_now(
                 discover_result=result,
-                available_minutes=result.get("available_minutes", request.available_minutes),
+                available_minutes=result.get(
+                    "available_minutes", request.available_minutes
+                ),
             )
+
         except Exception:
+
             # Keep validated options available when only the narrative fails.
+
             explanation = ""
 
         # ----------------------------------------------------
+
         # Response
+
         # ----------------------------------------------------
 
         return {
@@ -401,7 +516,9 @@ def discover_now_endpoint(request: DiscoverNowRequest):
                 "lat": request.user_location.lat,
                 "lng": request.user_location.lng,
             },
-            "available_minutes": result.get("available_minutes", request.available_minutes),
+            "available_minutes": result.get(
+                "available_minutes", request.available_minutes
+            ),
             "transport_mode": request.transport_mode,
             "search_radius_meters": result.get("search_radius_meters"),
             "search_available": result.get(
@@ -437,7 +554,11 @@ def discover_now_endpoint(request: DiscoverNowRequest):
 
 
 # ============================================================
+
+
 # Shaded Walking Route
+
+
 # ============================================================
 
 
