@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 import os
 
 import firebase_admin
@@ -122,7 +123,7 @@ class DiscoverNowRequest(BaseModel):
 
     available_minutes: int = Field(
         gt=0,
-        le=240,
+        le=1440,
     )
 
     transport_mode: str = "walking"
@@ -138,6 +139,10 @@ class DiscoverNowRequest(BaseModel):
         ge=1,
         le=20,
     )
+    category: Literal["all", "cafes", "markets"] | None = None
+    next_destination: UserLocation | None = None
+    departure_datetime: datetime | None = None
+    next_activity_start: datetime | None = None
 
 
 class ShadeRouteRequest(BaseModel):
@@ -288,7 +293,11 @@ def create_plan(request: PlannerRequest):
         # LLM explanation
         # ----------------------------------------------------
 
-        explanation = explain_plan(planner_result)
+        try:
+            explanation = explain_plan(planner_result)
+        except Exception:
+            # A narrative outage must not discard an otherwise valid schedule.
+            explanation = ""
 
         # ----------------------------------------------------
         # Response
@@ -297,6 +306,8 @@ def create_plan(request: PlannerRequest):
         return {
             "success": True,
             "plan": planner_result.get("plan", {}),
+            "planning_dates": planner_result.get("planning_dates", list(planner_result.get("plan", {}))),
+            "free_time_gaps": planner_result.get("free_time_gaps", {}),
             "explanation": explanation,
             "scheduled_place_ids": planner_result.get("scheduled_place_ids", []),
             "unscheduled_places": planner_result.get("unscheduled_places", []),
@@ -346,6 +357,11 @@ def discover_now_endpoint(request: DiscoverNowRequest):
         # Discover
         # ----------------------------------------------------
 
+        if request.next_activity_start is not None and (
+            request.next_destination is None or request.departure_datetime is None
+        ):
+            raise HTTPException(status_code=400, detail="Next activity requires destination and departure time")
+
         result = discover_now(
             latitude=(request.user_location.lat),
             longitude=(request.user_location.lng),
@@ -353,16 +369,27 @@ def discover_now_endpoint(request: DiscoverNowRequest):
             transport_mode=(request.transport_mode),
             safety_buffer_minutes=(request.safety_buffer_minutes),
             max_results=(request.max_results),
+            category_filter=request.category,
+            next_destination=(
+                (request.next_destination.lat, request.next_destination.lng)
+                if request.next_destination is not None else None
+            ),
+            departure_datetime=request.departure_datetime,
+            next_activity_start=request.next_activity_start,
         )
 
         # ----------------------------------------------------
         # LLM explanation
         # ----------------------------------------------------
 
-        explanation = explain_discover_now(
-            discover_result=result,
-            available_minutes=(request.available_minutes),
-        )
+        try:
+            explanation = explain_discover_now(
+                discover_result=result,
+                available_minutes=result.get("available_minutes", request.available_minutes),
+            )
+        except Exception:
+            # Keep validated options available when only the narrative fails.
+            explanation = ""
 
         # ----------------------------------------------------
         # Response
@@ -374,7 +401,7 @@ def discover_now_endpoint(request: DiscoverNowRequest):
                 "lat": request.user_location.lat,
                 "lng": request.user_location.lng,
             },
-            "available_minutes": request.available_minutes,
+            "available_minutes": result.get("available_minutes", request.available_minutes),
             "transport_mode": request.transport_mode,
             "search_radius_meters": result.get("search_radius_meters"),
             "search_available": result.get(
