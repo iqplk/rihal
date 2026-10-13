@@ -1,6 +1,11 @@
 from collections import Counter, defaultdict
+
 from datetime import datetime, timedelta, time
+
 import math
+
+from zoneinfo import ZoneInfo
+
 
 from services.routing_service import (
     build_route_cache,
@@ -8,34 +13,54 @@ from services.routing_service import (
 )
 
 # ============================================================
+
 # Constants
+
 # ============================================================
 
+
 DEFAULT_VISIT_MINUTES = 60
+
 DEFAULT_AVG_SPEED_KMH = 25
+
 DEFAULT_WALKING_SPEED_KMH = 5
 
 
+PLANNING_WINDOWS = {
+    "morning": (time(8, 0), time(13, 0)),
+    "evening": (time(16, 0), time(22, 0)),
+    "any": (time(8, 0), time(22, 0)),
+}
+
+
 # ============================================================
+
 # Helpers
+
 # ============================================================
 
 
 def haversine_km(coord1, coord2):
     """
+
     Fallback only if ORS fails.
+
     Calculates straight-line distance.
+
     """
 
     lat1, lon1 = coord1
+
     lat2, lon2 = coord2
 
     r = 6371
 
     phi1 = math.radians(lat1)
+
     phi2 = math.radians(lat2)
 
     delta_phi = math.radians(lat2 - lat1)
+
     delta_lambda = math.radians(lon2 - lon1)
 
     a = (
@@ -52,50 +77,64 @@ def haversine_km(coord1, coord2):
 
 
 def get_coordinates(place):
+
     location = place.get("location") or {}
 
     lat = location.get("lat")
+
     lng = location.get("lng")
 
     if lat is None or lng is None:
+
         return None
 
     try:
+
         return float(lat), float(lng)
 
     except (TypeError, ValueError):
+
         return None
 
 
 def get_visit_duration_minutes(place):
+
     value = place.get("avg_visit_min")
 
     try:
+
         value = int(value)
 
         if value > 0:
+
             return value
 
     except (TypeError, ValueError):
+
         pass
 
     return DEFAULT_VISIT_MINUTES
 
 
 # ============================================================
+
 # Firestore loader
+
 # ============================================================
 
 
 def load_places_from_firestore(db):
+
     places = []
 
     docs = db.collection("places").stream()
 
     for doc in docs:
+
         data = doc.to_dict()
 
         if "place_id" not in data:
+
             data["place_id"] = doc.id
 
         places.append(data)
@@ -104,12 +143,16 @@ def load_places_from_firestore(db):
 
 
 # ============================================================
+
 # Interest rules
+
 # ============================================================
 
 
 def normalize_preferred_time(value):
+
     if not value:
+
         return "any"
 
     value = str(value).strip().lower()
@@ -136,7 +179,9 @@ def normalize_preferred_time(value):
 
 def ui_interest_score(place, preference):
     """
+
     Maps Flutter UI interests to Firebase fields.
+
     """
 
     category = str(place.get("category") or "").strip()
@@ -154,14 +199,19 @@ def ui_interest_score(place, preference):
     preference = str(preference or "").strip()
 
     # --------------------------------------------------------
+
     # All
+
     # --------------------------------------------------------
 
     if preference == "الكل":
+
         return 1.0
 
     # --------------------------------------------------------
+
     # Historical
+
     # --------------------------------------------------------
 
     if preference in {
@@ -177,12 +227,15 @@ def ui_interest_score(place, preference):
             "تراثي",
             "متحف",
         }:
+
             score += 1.5
 
         return score
 
     # --------------------------------------------------------
+
     # Heritage / Culture
+
     # --------------------------------------------------------
 
     if preference in {
@@ -198,12 +251,15 @@ def ui_interest_score(place, preference):
             "متحف",
             "تاريخي",
         }:
+
             score += 1.5
 
         return score
 
     # --------------------------------------------------------
+
     # Religious
+
     # --------------------------------------------------------
 
     if preference in {
@@ -213,12 +269,15 @@ def ui_interest_score(place, preference):
     }:
 
         if category == "ديني":
+
             return 4.0
 
         return 0.0
 
     # --------------------------------------------------------
+
     # Nature
+
     # --------------------------------------------------------
 
     if preference == "طبيعة":
@@ -226,12 +285,15 @@ def ui_interest_score(place, preference):
         score = nature
 
         if place.get("is_outdoor"):
+
             score += 1.0
 
         return score
 
     # --------------------------------------------------------
+
     # Shopping
+
     # --------------------------------------------------------
 
     if preference == "تسوق":
@@ -239,12 +301,15 @@ def ui_interest_score(place, preference):
         score = shopping
 
         if category == "تسوق":
+
             score += 2.0
 
         return score
 
     # --------------------------------------------------------
+
     # Adventure
+
     # --------------------------------------------------------
 
     if preference == "مغامرة":
@@ -252,6 +317,7 @@ def ui_interest_score(place, preference):
         score = nature
 
         if place.get("is_outdoor"):
+
             score += 2.0
 
         if category in {
@@ -260,12 +326,15 @@ def ui_interest_score(place, preference):
             "جبلي",
             "تراثي",
         }:
+
             score += 1.0
 
         return score
 
     # --------------------------------------------------------
+
     # Events
+
     # --------------------------------------------------------
 
     if preference == "فعاليات":
@@ -273,6 +342,7 @@ def ui_interest_score(place, preference):
         score = culture
 
         if category == "ترفيهي":
+
             score += 2.0
 
         return score
@@ -284,15 +354,19 @@ def preference_score(
     place,
     user_preferences,
 ):
+
     if not user_preferences:
+
         return 0.0
 
     if "الكل" in user_preferences:
+
         return 1.0
 
     score = 0.0
 
     for preference in user_preferences:
+
         score += ui_interest_score(
             place,
             preference,
@@ -305,11 +379,13 @@ def category_bonus(
     place,
     user_preferences,
 ):
+
     category = str(place.get("category") or "")
 
     bonus = 0.0
 
     if "أماكن دينية" in user_preferences and category == "ديني":
+
         bonus += 2.0
 
     if "مواقع تاريخية" in user_preferences and category in {
@@ -317,6 +393,7 @@ def category_bonus(
         "تراثي",
         "متحف",
     }:
+
         bonus += 1.5
 
     if "تراث وثقافة" in user_preferences and category in {
@@ -324,17 +401,22 @@ def category_bonus(
         "متحف",
         "تاريخي",
     }:
+
         bonus += 1.5
 
     if "تسوق" in user_preferences and category == "تسوق":
+
         bonus += 2.0
 
     return bonus
 
 
 # ============================================================
+
 # Opening hours
+
 # ============================================================
+
 
 WEEKDAYS_AR = [
     "الاثنين",
@@ -348,6 +430,7 @@ WEEKDAYS_AR = [
 
 
 def parse_hhmm(value):
+
     return datetime.strptime(value, "%H:%M").time()
 
 
@@ -356,6 +439,7 @@ def is_open_for_visit(
     visit_start,
     visit_end,
 ):
+
     opening_hours = place.get("opening_hours") or {}
 
     day_key = WEEKDAYS_AR[visit_start.weekday()]
@@ -363,6 +447,7 @@ def is_open_for_visit(
     day_data = opening_hours.get(day_key)
 
     if not day_data:
+
         return (True, "ساعات العمل غير متوفرة؛ يلزم التحقق")
 
     intervals = day_data.get("intervals", [])
@@ -370,6 +455,7 @@ def is_open_for_visit(
     notes = day_data.get("notes", [])
 
     if not intervals:
+
         return (False, "المكان مغلق في هذا اليوم")
 
     for interval in intervals:
@@ -379,6 +465,7 @@ def is_open_for_visit(
         close_value = interval.get("close")
 
         if not open_value or not close_value:
+
             continue
 
         open_t = parse_hhmm(open_value)
@@ -396,34 +483,43 @@ def is_open_for_visit(
         )
 
         # Overnight closing
+
         if close_t <= open_t:
+
             close_dt += timedelta(days=1)
 
         if visit_start >= open_dt and visit_end <= close_dt:
 
             if notes:
+
                 return (True, " / ".join(notes))
 
             return (True, "ضمن ساعات العمل")
 
     if notes:
+
         return (False, " / ".join(notes))
 
     return (False, "خارج ساعات العمل")
 
 
 # ============================================================
+
 # Time suitability
+
 # ============================================================
 
 
 def get_time_period(dt):
+
     hour = dt.hour
 
     if 5 <= hour < 12:
+
         return "morning"
 
     if 12 <= hour < 17:
+
         return "afternoon"
 
     return "evening"
@@ -434,7 +530,9 @@ def time_suitability_score(
     visit_start,
     preferred_time,
 ):
+
     score = 0.0
+
     notes = []
 
     actual_period = get_time_period(visit_start)
@@ -457,7 +555,9 @@ def time_suitability_score(
 
 
 # ============================================================
+
 # Weather / outdoor
+
 # ============================================================
 
 
@@ -466,10 +566,13 @@ def outdoor_time_score(
     visit_start,
     weather_by_date,
 ):
+
     if not place.get("is_outdoor"):
+
         return 0.0, None
 
     score = 0.0
+
     note = None
 
     hour = visit_start.hour
@@ -501,7 +604,9 @@ def outdoor_time_score(
 
 
 # ============================================================
+
 # Diversity
+
 # ============================================================
 
 
@@ -509,21 +614,26 @@ def diversity_score(
     place,
     daily_categories,
 ):
+
     category = str(place.get("category") or "غير محدد")
 
     count = daily_categories.get(category, 0)
 
     if count == 0:
+
         return 1.2
 
     if count == 1:
+
         return -0.5
 
     return -2.0
 
 
 # ============================================================
+
 # Routing
+
 # ============================================================
 
 
@@ -533,10 +643,15 @@ def get_routing_options(
     route_cache=None,
 ):
     """
+
     Uses ORS Matrix Cache first.
 
+
+
     If ORS fails or route is missing,
+
     Haversine is used as fallback.
+
     """
 
     if origin is None:
@@ -555,7 +670,9 @@ def get_routing_options(
         }
 
     # --------------------------------------------------------
+
     # ORS Matrix Cache
+
     # --------------------------------------------------------
 
     if route_cache is not None:
@@ -575,13 +692,17 @@ def get_routing_options(
                 driving = result.get("driving")
 
                 if walking is not None or driving is not None:
+
                     return result
 
         except Exception:
+
             pass
 
     # --------------------------------------------------------
+
     # Haversine fallback
+
     # --------------------------------------------------------
 
     distance_km = haversine_km(
@@ -613,48 +734,63 @@ def choose_transport_option(
     routing,
     transport_mode="auto",
 ):
+
     walking = routing.get("walking")
 
     driving = routing.get("driving")
 
     # --------------------------------------------------------
+
     # Force walking
+
     # --------------------------------------------------------
 
     if transport_mode == "walking":
 
         if walking is not None:
+
             return ("walking", walking)
 
     # --------------------------------------------------------
+
     # Force driving
+
     # --------------------------------------------------------
 
     if transport_mode == "driving":
 
         if driving is not None:
+
             return ("driving", driving)
 
     # --------------------------------------------------------
+
     # Auto
+
     # --------------------------------------------------------
 
     recommended = routing.get("recommended_mode")
 
     if recommended == "walking" and walking is not None:
+
         return ("walking", walking)
 
     if recommended == "driving" and driving is not None:
+
         return ("driving", driving)
 
     # --------------------------------------------------------
+
     # Fallback
+
     # --------------------------------------------------------
 
     if driving is not None:
+
         return ("driving", driving)
 
     if walking is not None:
+
         return ("walking", walking)
 
     return (
@@ -667,8 +803,94 @@ def choose_transport_option(
 
 
 # ============================================================
+
 # Planner
+
 # ============================================================
+
+
+def build_free_time_gaps(
+    plan, places_by_id, window_start, window_end, safety_buffer_minutes=5
+):
+    """Usable gaps only: reserve the next leg's travel before its activity."""
+
+    gaps_by_date = {}
+
+    for date_key, stops in plan.items():
+
+        date = datetime.strptime(date_key, "%Y-%m-%d").date()
+
+        day_start = datetime.combine(date, window_start)
+
+        day_end = datetime.combine(date, window_end)
+
+        gaps = []
+
+        for previous, following in zip(stops, stops[1:]):
+
+            previous_end = datetime.combine(date, parse_hhmm(previous["end"]))
+
+            next_start = datetime.combine(date, parse_hhmm(following["start"]))
+
+            travel = following.get("estimated_travel_minutes")
+
+            if travel is None or travel < 0:
+
+                continue
+
+            travel = math.ceil(travel)
+
+            start = max(previous_end, day_start)
+
+            end = min(
+                next_start - timedelta(minutes=travel + safety_buffer_minutes), day_end
+            )
+
+            available = math.floor((end - start).total_seconds() / 60)
+
+            location = get_coordinates(places_by_id[previous["place_id"]])
+
+            destination = get_coordinates(places_by_id[following["place_id"]])
+
+            if available <= 0 or location is None or destination is None:
+
+                continue
+
+            gaps.append(
+                {
+                    "start": start.strftime("%H:%M"),
+                    "end": end.strftime("%H:%M"),
+                    "available_minutes": available,
+                    "location": {"lat": location[0], "lng": location[1]},
+                    "origin_name": (
+                        places_by_id[previous["place_id"]].get("name_ar")
+                        or places_by_id[previous["place_id"]].get("name_en")
+                    ),
+                    "next_destination": {"lat": destination[0], "lng": destination[1]},
+                    "next_destination_name": (
+                        places_by_id[following["place_id"]].get("name_ar")
+                        or places_by_id[following["place_id"]].get("name_en")
+                    ),
+                    "next_activity_start": following["start"],
+                    "start_datetime": start.replace(
+                        tzinfo=ZoneInfo("Asia/Riyadh")
+                    ).isoformat(),
+                    "end_datetime": end.replace(
+                        tzinfo=ZoneInfo("Asia/Riyadh")
+                    ).isoformat(),
+                    "next_activity_start_datetime": next_start.replace(
+                        tzinfo=ZoneInfo("Asia/Riyadh")
+                    ).isoformat(),
+                    "travel_minutes_to_next": travel,
+                    "safety_buffer_minutes": safety_buffer_minutes,
+                    "previous_place_id": previous["place_id"],
+                    "next_place_id": following["place_id"],
+                }
+            )
+
+        gaps_by_date[date_key] = gaps
+
+    return gaps_by_date
 
 
 def recommend_and_plan(
@@ -696,8 +918,14 @@ def recommend_and_plan(
 
     preferred_time = normalize_preferred_time(preferred_time)
 
+    # Departure is checkout, independent of the clock time supplied by callers.
+
+    departure_dt = datetime.combine(departure_dt.date(), time.min)
+
     # --------------------------------------------------------
+
     # 1. Clean places
+
     # --------------------------------------------------------
 
     unique_places = {}
@@ -707,15 +935,19 @@ def recommend_and_plan(
         place_id = place.get("place_id")
 
         if not place_id:
+
             continue
 
         if place_id in visited_place_ids:
+
             continue
 
         if selected_place_ids is not None and place_id not in selected_place_ids:
+
             continue
 
         if get_coordinates(place) is None:
+
             continue
 
         unique_places[place_id] = dict(place)
@@ -723,7 +955,9 @@ def recommend_and_plan(
     candidates = list(unique_places.values())
 
     # --------------------------------------------------------
+
     # 2. Initial ranking
+
     # --------------------------------------------------------
 
     ranked = []
@@ -736,8 +970,11 @@ def recommend_and_plan(
         )
 
         # If user didn't manually choose places,
+
         # exclude unrelated places.
+
         if selected_place_ids is None and user_preferences and interest <= 0:
+
             continue
 
         base_score = interest * 12
@@ -748,10 +985,12 @@ def recommend_and_plan(
         )
 
         # Manual choice gets priority
+
         if (
             selected_place_ids is not None
             and place.get("place_id") in selected_place_ids
         ):
+
             base_score += 20
 
         ranked.append(
@@ -769,7 +1008,9 @@ def recommend_and_plan(
     remaining = [place for _, place in ranked]
 
     # ========================================================
+
     # 3. Build ORS Matrix Cache ONCE
+
     # ========================================================
 
     routing_locations = []
@@ -811,44 +1052,57 @@ def recommend_and_plan(
             route_cache = None
 
     # --------------------------------------------------------
+
     # 4. Build dynamic plan
+
     # --------------------------------------------------------
 
-    current_dt = arrival_dt
+    window_start, window_end = PLANNING_WINDOWS.get(
+        preferred_time, PLANNING_WINDOWS["any"]
+    )
+
+    current_dt = max(arrival_dt, datetime.combine(arrival_dt.date(), window_start))
 
     current_location = lodging_coordinates
 
     plan = defaultdict(list)
 
+    planning_date = arrival_dt.date()
+
+    while planning_date < departure_dt.date():
+
+        plan[planning_date.isoformat()] = []
+
+        planning_date += timedelta(days=1)
+
     scheduled_ids = set()
+
+    blocked_reasons = defaultdict(set)
 
     while remaining and current_dt < departure_dt:
 
         date_key = current_dt.date().isoformat()
 
-        # Optional limit only if explicitly set
-        if max_places_per_day is not None and len(plan[date_key]) >= max_places_per_day:
+        day_start = max(datetime.combine(current_dt.date(), window_start), arrival_dt)
+
+        day_end = min(datetime.combine(current_dt.date(), window_end), departure_dt)
+
+        current_dt = max(current_dt, day_start)
+
+        # Every new day starts at the selected accommodation and window start.
+
+        if current_dt >= day_end or (
+            max_places_per_day is not None and len(plan[date_key]) >= max_places_per_day
+        ):
 
             current_dt = datetime.combine(
                 current_dt.date() + timedelta(days=1),
-                time(8, 0),
+                window_start,
             )
 
             current_location = lodging_coordinates
 
             continue
-
-        day_end = min(
-            datetime.combine(
-                current_dt.date(),
-                time(
-                    23,
-                    59,
-                    59,
-                ),
-            ),
-            departure_dt,
-        )
 
         daily_categories = Counter(
             item.get(
@@ -859,10 +1113,13 @@ def recommend_and_plan(
         )
 
         best_choice = None
+
         best_choice_value = None
 
         # ----------------------------------------------------
+
         # Compare remaining places
+
         # ----------------------------------------------------
 
         for place in remaining:
@@ -870,10 +1127,13 @@ def recommend_and_plan(
             coords = get_coordinates(place)
 
             if coords is None:
+
                 continue
 
             # ================================================
+
             # Routing from Matrix Cache
+
             # ================================================
 
             routing = get_routing_options(
@@ -890,30 +1150,39 @@ def recommend_and_plan(
                 transport_mode=transport_mode,
             )
 
-            travel_minutes = route_data.get("duration_minutes") or 0
+            travel_minutes = math.ceil(route_data.get("duration_minutes") or 0)
 
             distance_km = route_data.get("distance_km") or 0
 
             # Never allow zero travel between different points
+
             if (
                 current_location is not None
                 and current_location != coords
                 and travel_minutes <= 0
             ):
+
                 travel_minutes = 1
 
             # ================================================
+
             # Maximum travel distance
+
             # ================================================
 
             if (
                 max_travel_distance_km is not None
                 and distance_km > max_travel_distance_km
             ):
+
+                blocked_reasons[place["place_id"]].add("travel_distance")
+
                 continue
 
             # ================================================
+
             # Visit timing
+
             # ================================================
 
             start_dt = current_dt + timedelta(minutes=travel_minutes)
@@ -922,17 +1191,30 @@ def recommend_and_plan(
 
             end_dt = start_dt + timedelta(minutes=duration)
 
-            if start_dt < arrival_dt:
-                continue
-
-            if end_dt > departure_dt:
-                continue
+            # Travel and the entire visit must fit within this day's window.
 
             if end_dt > day_end:
+
+                reasons = blocked_reasons[place["place_id"]]
+
+                if start_dt >= day_end:
+
+                    reasons.add("travel_time")
+
+                elif duration > (day_end - day_start).total_seconds() / 60:
+
+                    reasons.add("visit_duration")
+
+                else:
+
+                    reasons.add("remaining_time")
+
                 continue
 
             # ================================================
+
             # Opening hours
+
             # ================================================
 
             (
@@ -945,10 +1227,62 @@ def recommend_and_plan(
             )
 
             if not is_open:
-                continue
+
+                # Try waiting until the exact opening boundary on the same day
+                # before deciding that the place cannot be scheduled.
+
+                day_hours = (place.get("opening_hours") or {}).get(
+                    WEEKDAYS_AR[start_dt.weekday()], {}
+                )
+
+                intervals = day_hours.get("intervals", [])
+
+                openings = sorted(
+                    datetime.combine(start_dt.date(), parse_hhmm(interval["open"]))
+                    for interval in intervals
+                    if interval.get("open")
+                )
+
+                for opening in openings:
+
+                    candidate_start = max(start_dt, opening)
+
+                    candidate_end = candidate_start + timedelta(minutes=duration)
+
+                    if candidate_end > day_end:
+
+                        continue
+
+                    candidate_open, candidate_note = is_open_for_visit(
+                        place, candidate_start, candidate_end
+                    )
+
+                    if candidate_open:
+
+                        start_dt, end_dt = candidate_start, candidate_end
+
+                        is_open, opening_note = True, candidate_note
+
+                        break
+
+                if not is_open:
+
+                    place_id = place["place_id"]
+
+                    if not intervals:
+
+                        blocked_reasons[place_id].add("closed")
+
+                    else:
+
+                        blocked_reasons[place_id].add("opening_hours")
+
+                    continue
 
             # ================================================
+
             # Score
+
             # ================================================
 
             interest = preference_score(
@@ -964,13 +1298,17 @@ def recommend_and_plan(
             )
 
             # User-selected places have priority
+
             if selected_place_ids is not None:
+
                 score += 20
 
             # Lower travel time = higher score
+
             score -= travel_minutes * 0.35
 
             # Lower distance = higher score
+
             score -= distance_km * 0.3
 
             (
@@ -1001,7 +1339,9 @@ def recommend_and_plan(
             )
 
             # ================================================
+
             # Best candidate
+
             # ================================================
 
             if best_choice_value is None or score > best_choice_value:
@@ -1027,7 +1367,9 @@ def recommend_and_plan(
                 }
 
         # ----------------------------------------------------
+
         # No place fits now
+
         # ----------------------------------------------------
 
         if best_choice is None:
@@ -1037,7 +1379,9 @@ def recommend_and_plan(
             continue
 
         # ----------------------------------------------------
+
         # Add selected place
+
         # ----------------------------------------------------
 
         place = best_choice["place"]
@@ -1099,7 +1443,9 @@ def recommend_and_plan(
         scheduled_ids.add(place_id)
 
         # ----------------------------------------------------
+
         # Update time and location
+
         # ----------------------------------------------------
 
         current_dt = best_choice["end"]
@@ -1107,29 +1453,73 @@ def recommend_and_plan(
         current_location = get_coordinates(place)
 
         # Remove visited place
+
         remaining = [p for p in remaining if p.get("place_id") != place_id]
 
     # ========================================================
+
     # Unscheduled places
+
     # ========================================================
 
     unscheduled_places = []
 
+    reason_messages = {
+        "closed": "المكان مغلق في الوقت المحدد.",
+        "travel_time": "وقت الوصول إلى المكان لا يتناسب مع وقت الخطة.",
+        "visit_duration": "مدة الزيارة أطول من الوقت المتاح.",
+        "remaining_time": "الوقت المتبقي لا يكفي للوصول والزيارة.",
+        "opening_hours": "ساعات عمل المكان لا تسمح بزيارة كاملة ضمن الوقت المحدد.",
+        "travel_distance": "المكان أبعد من نطاق التنقل المحدد.",
+        "no_available_time": "لا يوجد وقت متاح لجدولة المكان ضمن أيام الرحلة.",
+    }
+
     for place in remaining:
+
+        place_id = place["place_id"]
+
+        reason_codes = sorted(blocked_reasons[place_id])
+
+        if not reason_codes:
+
+            reason_codes = ["no_available_time"]
+
+        is_closed = "closed" in reason_codes
+
+        if is_closed:
+
+            primary_reason = "المكان مغلق في الوقت المحدد."
+
+        else:
+
+            primary_reason = " ".join(
+                reason_messages.get(code, "تعذر جدولة المكان.") for code in reason_codes
+            )
 
         unscheduled_places.append(
             {
                 "place_id": place.get("place_id"),
                 "name_ar": place.get("name_ar"),
+                "name_en": place.get("name_en"),
+                "reason_codes": reason_codes,
+                "reason": primary_reason,
+                "can_replace": is_closed,
+                "status": "closed" if is_closed else "unscheduled",
             }
         )
 
     # ========================================================
+
     # Return result
+
     # ========================================================
 
     return {
         "plan": dict(plan),
+        "planning_dates": list(plan),
+        "free_time_gaps": build_free_time_gaps(
+            plan, unique_places, window_start, window_end
+        ),
         "scheduled_place_ids": sorted(scheduled_ids),
         "unscheduled_places": unscheduled_places,
         "notes": [

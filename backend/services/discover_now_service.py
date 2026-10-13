@@ -2,6 +2,7 @@ import math
 import os
 import requests
 
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 from services.routing_service import (
@@ -34,7 +35,20 @@ GEOAPIFY_CATEGORIES = [
     "tourism.sights",
     "entertainment.museum",
     "leisure.park",
+    "commercial.shopping_mall",
+    "commercial.marketplace",
 ]
+
+CATEGORY_FILTERS = {
+    "all": GEOAPIFY_CATEGORIES,
+    "cafes": [
+        "catering.cafe",
+    ],
+    "markets": [
+        "commercial.shopping_mall",
+        "commercial.marketplace",
+    ],
+}
 
 
 # ============================================================
@@ -59,18 +73,21 @@ def get_dynamic_radius(
     if transport_mode == "walking":
 
         if available_minutes <= 30:
-            return 400
+            return 600
 
         if available_minutes <= 45:
-            return 700
+            return 900
 
         if available_minutes <= 60:
-            return 1000
+            return 1300
 
         if available_minutes <= 90:
-            return 1500
+            return 1800
 
-        return 2000
+        if available_minutes <= 120:
+            return 2500
+
+        return 3000
 
     # --------------------------------------------------------
     # Driving
@@ -130,7 +147,6 @@ def haversine_km(
     r = 6371.0
 
     phi1 = math.radians(lat1)
-
     phi2 = math.radians(lat2)
 
     delta_phi = math.radians(lat2 - lat1)
@@ -148,6 +164,52 @@ def haversine_km(
     )
 
     return r * c
+
+
+# ============================================================
+# Walking Fallback
+# ============================================================
+
+
+def estimate_walking_route(
+    origin,
+    destination,
+):
+    """
+    Fallback للمشي إذا ORS لم يرجع مسارًا.
+
+    يستخدم المسافة المستقيمة مع معامل
+    تقريبي للشوارع.
+
+    سرعة المشي التقريبية:
+    4.5 كم/ساعة.
+    """
+
+    straight_distance_km = haversine_km(
+        origin[0],
+        origin[1],
+        destination[0],
+        destination[1],
+    )
+
+    # الطرق الفعلية غالبًا أطول من الخط المستقيم
+    estimated_distance_km = straight_distance_km * 1.25
+
+    walking_speed_kmh = 4.5
+
+    duration_minutes = (estimated_distance_km / walking_speed_kmh) * 60
+
+    return {
+        "distance_km": round(
+            estimated_distance_km,
+            2,
+        ),
+        "duration_minutes": round(
+            duration_minutes,
+            1,
+        ),
+        "estimated": True,
+    }
 
 
 # ============================================================
@@ -171,6 +233,13 @@ def get_category(
 
     if any(category.startswith("catering.cafe") for category in categories):
         return "كافيه"
+
+    # --------------------------------------------------------
+    # Commercial
+    # --------------------------------------------------------
+
+    if any(category.startswith("commercial") for category in categories):
+        return "تسوق"
 
     # --------------------------------------------------------
     # Fast food
@@ -234,6 +303,7 @@ def get_default_visit_minutes(
         "وجبات سريعة": 25,
         "منطقة مطاعم": 35,
         "مطعم": 45,
+        "تسوق": 45,
         "حديقة": 30,
         "متحف": 45,
         "معلم سياحي": 30,
@@ -290,7 +360,8 @@ def search_nearby_geoapify_places(
     latitude,
     longitude,
     radius_meters,
-    max_results=20,
+    max_results=12,
+    category_filter=None,
 ):
     """
     يبحث عن الأماكن القريبة
@@ -298,10 +369,11 @@ def search_nearby_geoapify_places(
     """
 
     if not GEOAPIFY_API_KEY:
-
         raise RuntimeError("GEOAPIFY_API_KEY غير موجود " "في ملف .env")
 
-    categories = ",".join(GEOAPIFY_CATEGORIES)
+    selected_categories = CATEGORY_FILTERS[category_filter or "all"]
+
+    categories = ",".join(selected_categories)
 
     params = {
         "categories": categories,
@@ -313,7 +385,6 @@ def search_nearby_geoapify_places(
     }
 
     try:
-
         response = requests.get(
             GEOAPIFY_PLACES_URL,
             params=params,
@@ -321,11 +392,9 @@ def search_nearby_geoapify_places(
         )
 
     except requests.RequestException as e:
-
         raise RuntimeError("تعذر الاتصال بخدمة Geoapify: " + str(e))
 
     if response.status_code != 200:
-
         raise RuntimeError(
             "Geoapify request failed "
             f"with status "
@@ -335,7 +404,10 @@ def search_nearby_geoapify_places(
 
     data = response.json()
 
-    features = data.get("features", [])
+    features = data.get(
+        "features",
+        [],
+    )
 
     places = []
 
@@ -343,11 +415,20 @@ def search_nearby_geoapify_places(
 
     for feature in features:
 
-        properties = feature.get("properties", {})
+        properties = feature.get(
+            "properties",
+            {},
+        )
 
-        geometry = feature.get("geometry", {})
+        geometry = feature.get(
+            "geometry",
+            {},
+        )
 
-        coordinates = geometry.get("coordinates", [])
+        coordinates = geometry.get(
+            "coordinates",
+            [],
+        )
 
         if len(coordinates) < 2:
             continue
@@ -371,7 +452,20 @@ def search_nearby_geoapify_places(
         if not name:
             continue
 
-        categories_list = properties.get("categories", [])
+        categories_list = properties.get(
+            "categories",
+            [],
+        )
+
+        if category_filter not in (
+            None,
+            "all",
+        ) and not any(
+            actual == allowed or actual.startswith(allowed + ".")
+            for actual in categories_list
+            for allowed in selected_categories
+        ):
+            continue
 
         category = get_category(categories_list)
 
@@ -393,7 +487,10 @@ def search_nearby_geoapify_places(
                 "latitude": float(lat),
                 "longitude": float(lng),
                 "address": get_address(properties),
-                "straight_distance_km": round(distance_km, 2),
+                "straight_distance_km": round(
+                    distance_km,
+                    2,
+                ),
                 "opening_hours": opening_hours,
                 "visit_minutes": get_default_visit_minutes(category),
                 "geoapify_categories": categories_list,
@@ -428,6 +525,12 @@ def choose_route_mode(
             walking,
         )
 
+    if transport_mode == "walking":
+        return (
+            None,
+            None,
+        )
+
     # --------------------------------------------------------
     # Driving only
     # --------------------------------------------------------
@@ -436,6 +539,12 @@ def choose_route_mode(
         return (
             "driving",
             driving,
+        )
+
+    if transport_mode == "driving":
+        return (
+            None,
+            None,
         )
 
     # --------------------------------------------------------
@@ -455,8 +564,6 @@ def choose_route_mode(
             "driving",
             driving,
         )
-
-    # Fallback
 
     if walking:
         return (
@@ -488,6 +595,10 @@ def discover_now(
     transport_mode="walking",
     safety_buffer_minutes=5,
     max_results=10,
+    category_filter=None,
+    next_destination=None,
+    departure_datetime=None,
+    next_activity_start=None,
 ):
     """
     الاستكشاف اللحظي:
@@ -495,10 +606,59 @@ def discover_now(
     1. يحسب نطاق البحث تلقائيًا.
     2. يبحث عن الأماكن عبر Geoapify.
     3. يستخدم ORS لحساب الطريق الحقيقي.
-    4. يحسب:
+    4. إذا تعذر ORS للمشي يستخدم تقدير احتياطي.
+    5. يحسب:
        ذهاب + زيارة + رجوع + احتياط.
-    5. يرجع فقط الأماكن التي تناسب وقت المستخدم.
+    6. يرجع فقط الأماكن التي تناسب وقت المستخدم.
     """
+
+    if category_filter not in (
+        None,
+        "all",
+        "cafes",
+        "markets",
+    ):
+        raise ValueError("Unsupported discovery category")
+
+    if next_activity_start is not None:
+        if next_destination is None or departure_datetime is None:
+            raise ValueError("Next activity requires " "destination and departure time")
+
+        def utc(value):
+            if value.tzinfo is None:
+                from zoneinfo import ZoneInfo
+
+                value = value.replace(tzinfo=ZoneInfo("Asia/Riyadh"))
+
+            return value.astimezone(timezone.utc)
+
+        departure = max(
+            utc(departure_datetime),
+            datetime.now(timezone.utc),
+        )
+
+        remaining = math.floor(
+            (utc(next_activity_start) - departure).total_seconds() / 60
+        )
+
+        available_minutes = min(
+            available_minutes,
+            max(
+                0,
+                remaining,
+            ),
+        )
+
+    if available_minutes <= safety_buffer_minutes:
+        return {
+            "places": [],
+            "searched_count": 0,
+            "suitable_count": 0,
+            "search_radius_meters": 0,
+            "search_available": True,
+            "message": "ما لقينا مكان مناسب ضمن وقتك الحالي.",
+            "available_minutes": available_minutes,
+        }
 
     # ========================================================
     # 1. Dynamic radius
@@ -516,16 +676,15 @@ def discover_now(
     # ========================================================
 
     try:
-
         places = search_nearby_geoapify_places(
             latitude=latitude,
             longitude=longitude,
             radius_meters=radius_meters,
-            max_results=20,
+            max_results=12,
+            category_filter=category_filter,
         )
 
     except Exception as e:
-
         print(
             "Geoapify search error:",
             str(e),
@@ -537,7 +696,8 @@ def discover_now(
             "suitable_count": 0,
             "search_radius_meters": radius_meters,
             "search_available": False,
-            "message": ("تعذر البحث عن الأماكن " "القريبة مؤقتًا."),
+            "message": "تعذر البحث عن الأماكن القريبة مؤقتًا.",
+            "available_minutes": available_minutes,
             "error": str(e),
         }
 
@@ -546,14 +706,14 @@ def discover_now(
     # ========================================================
 
     if not places:
-
         return {
             "places": [],
             "searched_count": 0,
             "suitable_count": 0,
             "search_radius_meters": radius_meters,
             "search_available": True,
-            "message": ("لم يتم العثور على أماكن " "قريبة ضمن نطاق البحث."),
+            "message": "لم يتم العثور على أماكن قريبة ضمن نطاق البحث.",
+            "available_minutes": available_minutes,
         }
 
     # ========================================================
@@ -565,14 +725,20 @@ def discover_now(
         longitude,
     )
 
+    return_location = next_destination or user_location
+
     # ========================================================
     # 5. ORS locations
     # ========================================================
 
-    locations = [user_location]
+    locations = [
+        user_location,
+    ]
+
+    if return_location != user_location:
+        locations.append(return_location)
 
     for place in places:
-
         locations.append(
             (
                 place["latitude"],
@@ -587,12 +753,16 @@ def discover_now(
     route_cache = build_route_cache(locations)
 
     if route_cache.get("walking_error"):
-
-        print("Walking Matrix warning:", route_cache["walking_error"])
+        print(
+            "Walking Matrix warning:",
+            route_cache["walking_error"],
+        )
 
     if route_cache.get("driving_error"):
-
-        print("Driving Matrix warning:", route_cache["driving_error"])
+        print(
+            "Driving Matrix warning:",
+            route_cache["driving_error"],
+        )
 
     results = []
 
@@ -624,10 +794,34 @@ def discover_now(
         return_route = get_cached_route(
             route_cache,
             place_location,
-            user_location,
+            return_location,
         )
 
-        if not outbound_route or not return_route:
+        # ----------------------------------------------------
+        # Walking fallback
+        # ----------------------------------------------------
+
+        if transport_mode == "walking":
+
+            if not outbound_route:
+                outbound_route = {}
+
+            if not return_route:
+                return_route = {}
+
+            if not outbound_route.get("walking"):
+                outbound_route["walking"] = estimate_walking_route(
+                    user_location,
+                    place_location,
+                )
+
+            if not return_route.get("walking"):
+                return_route["walking"] = estimate_walking_route(
+                    place_location,
+                    return_location,
+                )
+
+        elif not outbound_route or not return_route:
             continue
 
         # ----------------------------------------------------
@@ -654,19 +848,27 @@ def discover_now(
         # Times
         # ----------------------------------------------------
 
-        outbound_minutes = int(
-            outbound_data.get(
-                "duration_minutes",
-                0,
-            )
-        )
+        outbound_duration = outbound_data.get("duration_minutes")
 
-        return_minutes = int(
-            return_data.get(
-                "duration_minutes",
-                0,
+        return_duration = return_data.get("duration_minutes")
+
+        if any(
+            not isinstance(
+                value,
+                (int, float),
             )
-        )
+            or not math.isfinite(value)
+            or value < 0
+            for value in (
+                outbound_duration,
+                return_duration,
+            )
+        ):
+            continue
+
+        outbound_minutes = math.ceil(outbound_duration)
+
+        return_minutes = math.ceil(return_duration)
 
         visit_minutes = int(
             place.get(
@@ -693,6 +895,22 @@ def discover_now(
         remaining_minutes = available_minutes - total_minutes
 
         # ----------------------------------------------------
+        # Routing source
+        # ----------------------------------------------------
+
+        estimated_walking = selected_mode == "walking" and (
+            outbound_data.get("estimated") or return_data.get("estimated")
+        )
+
+        if estimated_walking:
+            routing_source = "estimated_walking"
+        else:
+            routing_source = outbound_route.get(
+                "source",
+                "ors",
+            )
+
+        # ----------------------------------------------------
         # Result
         # ----------------------------------------------------
 
@@ -702,14 +920,17 @@ def discover_now(
                 "travel_mode": selected_mode,
                 "outbound_minutes": outbound_minutes,
                 "return_minutes": return_minutes,
+                "outbound_travel_minutes": outbound_minutes,
+                "return_travel_minutes": return_minutes,
                 "outbound_distance_km": outbound_data.get("distance_km"),
                 "return_distance_km": return_data.get("distance_km"),
                 "safety_buffer_minutes": safety_buffer_minutes,
                 "total_required_minutes": total_minutes,
+                "total_time_minutes": total_minutes,
                 "remaining_minutes": remaining_minutes,
                 "walking_option": outbound_route.get("walking"),
                 "driving_option": outbound_route.get("driving"),
-                "routing_source": outbound_route.get("source"),
+                "routing_source": routing_source,
             }
         )
 
@@ -728,11 +949,28 @@ def discover_now(
     # 9. Response
     # ========================================================
 
+    message = None
+
+    if not results:
+        message = "لم يتم العثور على أماكن " "تناسب الوقت وطريقة التنقل الحالية."
+
     return {
         "places": results[:max_results],
         "searched_count": len(places),
         "suitable_count": len(results),
         "search_radius_meters": radius_meters,
         "search_available": True,
-        "message": None,
+        "message": message,
+        "available_minutes": available_minutes,
+        "next_destination": (
+            {
+                "lat": return_location[0],
+                "lng": return_location[1],
+            }
+            if next_destination is not None
+            else None
+        ),
+        "next_activity_start": (
+            next_activity_start.isoformat() if next_activity_start is not None else None
+        ),
     }

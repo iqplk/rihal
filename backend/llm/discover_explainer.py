@@ -77,6 +77,8 @@ def explain_discover_now(
     data = {
         "available_minutes": available_minutes,
         "places": simplified_places,
+        "continues_to_next_activity": discover_result.get("next_destination") is not None,
+        "next_activity_start": discover_result.get("next_activity_start"),
     }
 
     # ========================================================
@@ -102,6 +104,7 @@ def explain_discover_now(
 - لا تقل إن المكان مفتوح الآن إلا إذا كانت هذه المعلومة موجودة صراحة.
 - لا تستخدم كلمات تقنية مثل API أو ORS أو Geoapify.
 - لا تقل إن الوصول مضمون.
+- إذا كانت continues_to_next_activity صحيحة، فمدة العودة تعني الانتقال إلى الوجهة التالية، وليس الرجوع إلى نقطة البداية. وضح ذلك دون اختراع اسم الوجهة.
 - استخدم فقط الأرقام الموجودة في البيانات.
 - لا تقرر بالنيابة عن المستخدم.
 - لا تقل إن مكانًا أفضل من الآخر إلا بناءً على الأرقام الموجودة فقط.
